@@ -1,0 +1,79 @@
+/* src/components/Layout/NavBoard.css */
+.nav-board {
+    width: 280px;
+    flex-shrink: 0;
+    background-color: #0a0a0a;
+    color: white;
+    padding: 2rem 1rem;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    border-right: 1px solid #333333;
+    transition: transform 0.3s ease-in-out; /* Adicionado para animação */
+}
+
+/* --- ESTILOS EXISTENTES --- */
+.nav-board h1,
+.nav-board nav ul,
+.nav-board nav ul li a,
+.nav-board nav ul li a:hover,
+.nav-board nav ul li a.active,
+.nav-board-footer {
+    /* Nenhum destes estilos precisa ser alterado fundamentalmente, então são omitidos para brevidade */
+    /* Mas garantimos que eles continuem existindo no arquivo real */
+}
+
+/* --- REGRAS RESPONSIVAS --- */
+@media (max-width: 768px) {
+    .nav-board {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        z-index: 2000; /* Garante que o menu fique sobre todo o resto */
+        border-right: 1px solid #333333; /* Mantém a borda no modo mobile */
+    }
+
+    .nav-board.is-open {
+        transform: translateX(0);
+    }
+}
+
+/* --- ESTILOS DO CONTEÚDO (já existentes e inalterados) --- */
+.nav-board h1 {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #ffffff;
+    text-align: center;
+}
+
+.nav-board nav ul {
+    list-style: none;
+    padding: 0;
+    width: 100%;
+}
+
+.nav-board nav ul li a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #888888;
+    padding: 1rem 1.5rem;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    transition: background-color 0.2s, color 0.2s;
+    font-weight: 500;
+}
+
+.nav-board nav ul li a:hover,
+.nav-board nav ul li a.active {
+    background-color: #1a1a1a;
+    color: white;
+}
+
+.nav-board-footer {
+    width: 100%;
+}
+

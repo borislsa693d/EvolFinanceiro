@@ -142,6 +142,7 @@
   font-weight: 700;
   margin-bottom: 2rem;
   letter-spacing: -0.5px;
+  color: #ffffff;
 }
 
 .charts-grid {
@@ -155,6 +156,7 @@
   border: 1px solid #333333;
   padding: 2rem;
   transition: all 0.3s;
+  color: #ffffff;
 }
 
 .chart-card:hover {
@@ -167,6 +169,7 @@
   margin-bottom: 1.5rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: #ffffff;
 }
 
 .chart-container {
@@ -232,6 +235,7 @@
 .legend-amount {
   font-weight: 600;
   font-size: 0.95rem;
+  color: #ffffff;
 }
 
 .legend-percentage {
@@ -323,6 +327,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+  color: #ffffff;
 }
 
 .legend-bottom-color {
@@ -353,6 +358,124 @@
   color: #444444;
 }
 
+/* Tabs */
+.tabs-container {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid #333333;
+}
+
+.tab-button {
+  background: transparent;
+  border: none;
+  color: #888888;
+  padding: 1rem 2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab-button:hover {
+  color: #ffffff;
+  background: #0a0a0a;
+}
+
+.tab-button.active {
+  color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+/* Analyses Section */
+.analyses-section {
+  margin-top: 2rem;
+}
+
+.analyses-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Column Chart Evolution */
+.column-chart-evolution {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 350px;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.chart-column-evolution {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.column-bars-evolution {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 0.25rem;
+  height: 280px;
+}
+
+.bar-group {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.column-bar.average {
+  background: #999999;
+}
+
+/* Credit Card Chart */
+.column-chart-credit {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 300px;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.chart-column-credit {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.column-bar-credit-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 240px;
+}
+
+.column-bar.credit-card {
+  width: 60%;
+  background: linear-gradient(to top, #666666, #999999);
+  min-width: 40px;
+}
+
 @media (max-width: 768px) {
   .dashboard-header {
     flex-direction: column;
@@ -367,11 +490,26 @@
     grid-template-columns: 1fr;
   }
 
+
   .pie-chart {
     flex-direction: column;
   }
 
   .column-chart {
     gap: 1rem;
+  }
+
+  .column-chart-evolution {
+    gap: 0.5rem;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .tab-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
   }
 }

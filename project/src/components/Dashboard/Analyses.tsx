@@ -1,0 +1,24 @@
+import { Transaction, Category, CreditCard } from '../../lib/supabase';
+import CategoryPieChart from './CategoryPieChart';
+import MonthlyEvolutionChart from './MonthlyEvolutionChart';
+import CreditCardMonthlyChart from './CreditCardMonthlyChart';
+
+interface AnalysesProps {
+  transactions: Transaction[];
+  categories: Category[];
+  creditCards: CreditCard[];
+}
+
+export default function Analyses({ transactions, categories, creditCards }: AnalysesProps) {
+  return (
+    <div className="analyses-section">
+      <h2 className="section-title">Análises</h2>
+      <div className="analyses-grid">
+        <CategoryPieChart transactions={transactions} categories={categories} />
+        <CreditCardMonthlyChart transactions={transactions} creditCards={creditCards} />
+        <MonthlyEvolutionChart transactions={transactions} />
+      </div>
+    </div>
+  );
+}
+

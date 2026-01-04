@@ -165,7 +165,7 @@ export default function Dashboard() {
         />
 
         <div className="charts-section">
-          <h2 className="section-title">Análises</h2>
+          <h2 className="section-title">Visão Geral</h2>
           <div className="charts-grid">
             <ExpensesByCategory
               transactions={transactions}

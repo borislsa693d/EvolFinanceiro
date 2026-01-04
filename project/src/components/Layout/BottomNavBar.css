@@ -1,0 +1,69 @@
+.bottom-nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background-color: #0a0a0a;
+    border-top: 1px solid #333333;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    padding: 0 0.5rem;
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #888888;
+    background: none;
+    border: none;
+    flex: 1;
+    height: 100%;
+    transition: color 0.2s;
+}
+
+.bottom-nav-item:hover {
+    color: #ffffff;
+}
+
+.bottom-nav-item.active {
+    color: #ffffff;
+}
+
+.bottom-nav-label {
+    font-size: 0.65rem;
+    margin-top: 4px;
+}
+
+/* Special styling for the Plus button */
+.plus-button {
+    flex: 0 0 60px; /* Prevent stretching */
+    position: relative;
+    top: -20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    color: #000000;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.4);
+    border: 3px solid #0a0a0a;
+    padding: 0; /* Ensure no internal padding */
+}
+
+.plus-button:hover {
+    color: #000000;
+    transform: scale(1.05);
+}
+
+.plus-button .plus-button-icon-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

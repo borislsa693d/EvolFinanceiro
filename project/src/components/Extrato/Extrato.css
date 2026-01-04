@@ -1,0 +1,180 @@
+/* src/components/Extrato/Extrato.css */
+.extrato-container {
+    background-color: transparent; /* O fundo agora vem do layout principal */
+    color: #ffffff;
+    padding: 0; /* O padding vem do main-content do layout */
+    border: none;
+    box-shadow: none;
+}
+
+.extrato-container h2 {
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.filters-panel {
+    background-color: #0a0a0a;
+    border: 1px solid #333333;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.filters-container {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-item label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    color: #888888;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.period-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.period-inputs span {
+    color: #888888;
+}
+
+.filter-item input,
+.filter-item select {
+    padding: 0.6rem 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid #333333;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    transition: border-color 0.2s;
+}
+
+.filter-item input:focus,
+.filter-item select:focus {
+    outline: none;
+    border-color: #ffffff;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.filter-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.apply-button {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.apply-button:hover {
+    background-color: #e0e0e0;
+    transform: translateY(-2px);
+}
+
+.clear-button {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+.clear-button:hover {
+    background-color: #4a4a4a;
+}
+
+.table-container {
+    overflow-x: auto;
+    background-color: #0a0a0a;
+    border: 1px solid #333333;
+    border-radius: 0.5rem;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-container th,
+.table-container td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #333333;
+}
+
+.table-container th {
+    background-color: #1a1a1a;
+    font-weight: 600;
+    color: #ffffff;
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.table-container tr:last-child td {
+    border-bottom: none;
+}
+
+.table-container tbody tr:hover {
+    background-color: #1f1f1f;
+}
+
+.filter-item input::placeholder,
+.filter-item select::placeholder {
+  color: #444444;
+}
+
+@media (max-width: 768px) {
+    .filters-panel {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filters-container {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .filter-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .filter-button {
+        justify-content: center;
+    }
+
+    .period-inputs {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+    }
+}
+

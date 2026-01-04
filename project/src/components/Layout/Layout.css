@@ -1,0 +1,56 @@
+.layout {
+    display: flex;
+    height: 100vh;
+    background-color: #000000;
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 2rem;
+    overflow-y: auto; /* Rolagem vertical apenas no conteúdo */
+}
+
+/* Botão de Menu Mobile (Hamburger) */
+.mobile-nav-toggle {
+    display: none; /* Oculto por padrão em telas grandes */
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    background: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #333333;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    z-index: 1500;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* Overlay para fechar o menu ao clicar fora */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+}
+
+
+
+/* Media Query para telas de tablet e celular */
+@media (max-width: 768px) {
+    .mobile-nav-toggle {
+        display: block; /* Mostra o botão hamburger */
+    }
+
+    .overlay {
+        display: block; /* Mostra o overlay quando o menu estiver aberto (controlado por React) */
+    }
+
+    .main-content {
+        padding: 1rem;
+        padding-top: 5rem; /* Espaço para o botão hamburger não sobrepor o título */
+    }
+}
