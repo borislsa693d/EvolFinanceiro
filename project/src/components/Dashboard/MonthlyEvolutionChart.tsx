@@ -1,4 +1,4 @@
-import { Transaction } from '../../lib/supabase';
+import { Transaction } from '../../lib/api';
 import { BarChart3 } from 'lucide-react';
 
 interface MonthlyEvolutionChartProps {

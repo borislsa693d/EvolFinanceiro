@@ -1,12 +1,22 @@
 import { useEffect, useState } from 'react';
-import { supabase, Transaction, Category, CreditCard } from '../../lib/supabase';
+import { transactionsAPI, categoriesAPI, creditCardsAPI, accountsAPI } from '../../lib/api';
+import type { Transaction, Category, CreditCard, Account } from '../../lib/api';
 import Analyses from '../Dashboard/Analyses';
+import { FaCalendarAlt, FaUniversity, FaCreditCard, FaFilter, FaTimes } from 'react-icons/fa';
+import '../Extrato/Extrato.css';
 
 export default function AnalisesPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filtros
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState('');
+  const [selectedCard, setSelectedCard] = useState('');
 
   useEffect(() => {
     loadData();
@@ -14,20 +24,48 @@ export default function AnalisesPage() {
 
   const loadData = async () => {
     try {
-      const [transactionsRes, categoriesRes, creditCardsRes] = await Promise.all([
-        supabase.from('transactions').select('*').order('date', { ascending: false }),
-        supabase.from('categories').select('*'),
-        supabase.from('credit_cards').select('*'),
+      const [transactionsData, categoriesData, creditCardsData, accountsData] = await Promise.all([
+        transactionsAPI.getAll(),
+        categoriesAPI.getAll(),
+        creditCardsAPI.getAll(),
+        accountsAPI.getAll(),
       ]);
 
-      if (transactionsRes.data) setTransactions(transactionsRes.data);
-      if (categoriesRes.data) setCategories(categoriesRes.data);
-      if (creditCardsRes.data) setCreditCards(creditCardsRes.data);
+      setTransactions(transactionsData);
+      setCategories(categoriesData);
+      setCreditCards(creditCardsData);
+      setAccounts(accountsData);
     } catch (error) {
-      console.log('Erro ao carregar dados:', error);
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setLoading(false);
+  const handleFilter = async () => {
+    setLoading(true);
+    try {
+      const filters: any = {};
+      if (startDate) filters.start_date = startDate;
+      if (endDate) filters.end_date = endDate;
+      if (selectedAccount) filters.account_id = selectedAccount;
+      if (selectedCard) filters.credit_card_id = selectedCard;
+
+      const filtered = await transactionsAPI.getAll(filters);
+      setTransactions(filtered);
+    } catch (error) {
+      console.error('Erro ao filtrar:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearFilters = async () => {
+    setStartDate('');
+    setEndDate('');
+    setSelectedAccount('');
+    setSelectedCard('');
+    loadData();
   };
 
   if (loading) {
@@ -46,11 +84,80 @@ export default function AnalisesPage() {
   }
 
   return (
-    <Analyses
-      transactions={transactions}
-      categories={categories}
-      creditCards={creditCards}
-    />
+    <div>
+      <div className="filters-panel">
+        <div className="filters-container">
+          {/* Filtro de Período */}
+          <div className="filter-item">
+            <label htmlFor="start-date"><FaCalendarAlt /> Período</label>
+            <div className="period-inputs">
+              <input 
+                type="date" 
+                id="start-date" 
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <span>-</span>
+              <input 
+                type="date" 
+                id="end-date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Filtro por Conta */}
+          <div className="filter-item">
+            <label htmlFor="account-filter"><FaUniversity /> Conta</label>
+            <select 
+              id="account-filter"
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+            >
+              <option value="">Todas</option>
+              {accounts.map(account => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por Cartão de Crédito */}
+          <div className="filter-item">
+            <label htmlFor="cc-filter"><FaCreditCard /> Cartão de Crédito</label>
+            <select 
+              id="cc-filter"
+              value={selectedCard}
+              onChange={(e) => setSelectedCard(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {creditCards.map(card => (
+                <option key={card.id} value={card.id}>
+                  {card.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="filter-actions">
+          <button className="filter-button apply-button" onClick={handleFilter}>
+            <FaFilter />
+            Aplicar Filtros
+          </button>
+          <button className="filter-button clear-button" onClick={handleClearFilters}>
+            <FaTimes />
+            Limpar
+          </button>
+        </div>
+      </div>
+
+      <Analyses
+        transactions={transactions}
+        categories={categories}
+        creditCards={creditCards}
+      />
+    </div>
   );
 }
-

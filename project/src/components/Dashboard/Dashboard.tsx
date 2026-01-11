@@ -1,141 +1,61 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase, Transaction, Category, CreditCard } from '../../lib/supabase';
+import { transactionsAPI, categoriesAPI, creditCardsAPI, accountsAPI } from '../../lib/api';
+import type { Transaction, Category, CreditCard, Account } from '../../lib/api';
 import StatsCards from './StatsCards';
 import ExpensesByCategory from './ExpensesByCategory';
 import WealthEvolution from './WealthEvolution';
-import { LogOut } from 'lucide-react';
+import { LogOut, Plus } from 'lucide-react';
 import '../../styles/dashboard.css';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-    // Bypass: seed inicial apenas se houver user
     if (user) {
-      seedInitialData();
+      loadData();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   const loadData = async () => {
-    // Bypass: funciona mesmo sem user autenticado
-    // if (!user) return;
-
-    try {
-      const [transactionsRes, categoriesRes, creditCardsRes] = await Promise.all([
-        supabase.from('transactions').select('*').order('date', { ascending: false }),
-        supabase.from('categories').select('*'),
-        supabase.from('credit_cards').select('*'),
-      ]);
-
-      if (transactionsRes.data) setTransactions(transactionsRes.data);
-      if (categoriesRes.data) setCategories(categoriesRes.data);
-      if (creditCardsRes.data) setCreditCards(creditCardsRes.data);
-    } catch (error) {
-      console.log('Erro ao carregar dados (modo bypass):', error);
-    }
-
-    setLoading(false);
-  };
-
-  const seedInitialData = async () => {
-    // Bypass: desabilitado seed inicial sem user
     if (!user) return;
 
-    const { data: existingCategories } = await supabase
-      .from('categories')
-      .select('*')
-      .limit(1);
+    try {
+      const [transactionsData, categoriesData, creditCardsData, accountsData] = await Promise.all([
+        transactionsAPI.getAll(),
+        categoriesAPI.getAll(),
+        creditCardsAPI.getAll(),
+        accountsAPI.getAll(),
+      ]);
 
-    if (existingCategories && existingCategories.length === 0) {
-      const defaultCategories = [
-        { name: 'Alimentação', color: '#ffffff', user_id: user.id },
-        { name: 'Transporte', color: '#cccccc', user_id: user.id },
-        { name: 'Moradia', color: '#999999', user_id: user.id },
-        { name: 'Lazer', color: '#666666', user_id: user.id },
-        { name: 'Saúde', color: '#333333', user_id: user.id },
-      ];
-
-      await supabase.from('categories').insert(defaultCategories);
-
-      const { data: newCategories } = await supabase
-        .from('categories')
-        .select('*');
-
-      if (newCategories) {
-        const sampleTransactions = [
-          {
-            user_id: user.id,
-            category_id: newCategories[0].id,
-            type: 'expense',
-            amount: 450.00,
-            description: 'Supermercado',
-            date: '2026-01-01',
-          },
-          {
-            user_id: user.id,
-            category_id: newCategories[1].id,
-            type: 'expense',
-            amount: 200.00,
-            description: 'Combustível',
-            date: '2026-01-02',
-          },
-          {
-            user_id: user.id,
-            category_id: newCategories[2].id,
-            type: 'expense',
-            amount: 1200.00,
-            description: 'Aluguel',
-            date: '2025-12-28',
-          },
-          {
-            user_id: user.id,
-            category_id: newCategories[3].id,
-            type: 'expense',
-            amount: 150.00,
-            description: 'Cinema',
-            date: '2025-12-30',
-          },
-          {
-            user_id: user.id,
-            type: 'income',
-            amount: 5000.00,
-            description: 'Salário',
-            date: '2025-12-30',
-          },
-          {
-            user_id: user.id,
-            type: 'income',
-            amount: 5000.00,
-            description: 'Salário',
-            date: '2026-01-01',
-          },
-        ];
-
-        await supabase.from('transactions').insert(sampleTransactions);
-      }
-
-      await supabase.from('credit_cards').insert({
-        user_id: user.id,
-        name: 'Cartão Principal',
-        limit_total: 5000.00,
-        limit_available: 3200.00,
-      });
-
-      loadData();
+      setTransactions(transactionsData);
+      setCategories(categoriesData);
+      setCreditCards(creditCardsData);
+      setAccounts(accountsData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
     }
   };
+
 
   if (loading) {
     return (
       <div className="dashboard">
         <div className="dashboard-header">
-          <div className="dashboard-logo">FINANCEFLOW</div>
+          <div className="dashboard-logo">
+            Bora economizar, {user?.first_name || user?.full_name?.split(' ')[0] || 'usuário'}?
+          </div>
         </div>
         <div className="dashboard-content">
           <div className="empty-state">Carregando...</div>
@@ -147,7 +67,9 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <div className="dashboard-logo">FINANCEFLOW</div>
+        <div className="dashboard-logo">
+          Bora economizar, {user?.first_name || user?.full_name?.split(' ')[0] || 'usuário'}?
+        </div>
         <div className="dashboard-user">
           <span className="user-email">{user?.email || 'Modo Bypass'}</span>
           {user && (
@@ -162,6 +84,7 @@ export default function Dashboard() {
         <StatsCards
           transactions={transactions}
           creditCards={creditCards}
+          accounts={accounts}
         />
 
         <div className="charts-section">
@@ -175,6 +98,15 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Botão flutuante para adicionar transação - apenas desktop */}
+      <button 
+        className="floating-add-button desktop-only"
+        onClick={() => navigate('/new-transaction')}
+        title="Nova Transação"
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }

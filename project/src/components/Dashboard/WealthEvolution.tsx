@@ -1,4 +1,4 @@
-import { Transaction } from '../../lib/supabase';
+import { Transaction } from '../../lib/api';
 import { BarChart3 } from 'lucide-react';
 
 interface WealthEvolutionProps {
@@ -6,16 +6,12 @@ interface WealthEvolutionProps {
 }
 
 export default function WealthEvolution({ transactions }: WealthEvolutionProps) {
-  const months = ['Dez', 'Jan', 'Fev'];
+  const monthNames = ['Jan', 'Fev', 'Mar'];
+  const year = 2026; // Ano atual para consistência
 
-  const getMonthData = (monthOffset: number) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() + monthOffset);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-
+  const getMonthData = (month: number) => {
     const monthTransactions = transactions.filter((t) => {
-      const tDate = new Date(t.date);
+      const tDate = new Date(t.date + 'T00:00:00');
       return tDate.getMonth() + 1 === month && tDate.getFullYear() === year;
     });
 
@@ -23,8 +19,9 @@ export default function WealthEvolution({ transactions }: WealthEvolutionProps) 
       .filter((t) => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
+    // Despesas apenas de conta bancária (excluir cartão)
     const expenses = monthTransactions
-      .filter((t) => t.type === 'expense')
+      .filter((t) => t.type === 'expense' && t.account_id && !t.credit_card_id)
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
     return {
@@ -34,10 +31,11 @@ export default function WealthEvolution({ transactions }: WealthEvolutionProps) 
     };
   };
 
+  // Mostrar 3 meses: Janeiro, Fevereiro, Março
   const data = [
-    getMonthData(-1),
-    getMonthData(0),
-    getMonthData(1),
+    getMonthData(1),  // Janeiro
+    getMonthData(2),  // Fevereiro
+    getMonthData(3),  // Março
   ];
 
   const maxValue = Math.max(
@@ -100,7 +98,7 @@ export default function WealthEvolution({ transactions }: WealthEvolutionProps) 
                   <span className="bar-value">{formatCurrency(monthData.balance)}</span>
                 </div>
               </div>
-              <div className="column-label">{months[index]}</div>
+              <div className="column-label">{monthNames[index]}</div>
             </div>
           ))}
         </div>

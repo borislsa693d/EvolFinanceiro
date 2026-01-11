@@ -36,8 +36,12 @@
 }
 
 .bottom-nav-label {
-    font-size: 0.65rem;
-    margin-top: 4px;
+    font-size: 0.6rem;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 /* Special styling for the Plus button */

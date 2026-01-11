@@ -1,4 +1,4 @@
-import { Transaction, Category, CreditCard } from '../../lib/supabase';
+import { Transaction, Category, CreditCard } from '../../lib/api';
 import CategoryPieChart from './CategoryPieChart';
 import MonthlyEvolutionChart from './MonthlyEvolutionChart';
 import CreditCardMonthlyChart from './CreditCardMonthlyChart';

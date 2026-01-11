@@ -7,6 +7,7 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: <Home size={24} /> },
   { path: '/extrato', label: 'Extrato', icon: <FileText size={24} /> },
   { path: '/new-transaction', label: 'Adicionar', icon: <Plus size={32} /> },
+  { path: '/analises', label: 'Análises', icon: <BarChart2 size={24} /> },
   { path: '/previsao', label: 'Previsão', icon: <Calendar size={24} /> },
   { path: '/menu', label: 'Menu', icon: <Menu size={24} /> },
 ];

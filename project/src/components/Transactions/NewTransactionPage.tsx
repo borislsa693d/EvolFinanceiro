@@ -1,26 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { transactionsAPI, categoriesAPI, accountsAPI, creditCardsAPI } from '../../lib/api';
+import type { Category, Account, CreditCard, Transaction } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import './NewTransactionPage.css'; // Re-using the same CSS for the form
+import './NewTransactionPage.css';
 
-// Mirroring types from inspection
-interface Categoria {
+interface CombinedAccount {
   id: string;
-  nome: string;
-}
-interface Conta {
-  id: string;
-  banco: string;
-}
-interface Cartao {
-  id: string;
-  nome: string;
+  name: string;
+  type: 'Conta' | 'Cartão';
 }
 
 const NewTransactionPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const editTransaction = location.state?.editTransaction as Transaction | undefined;
+  const isEditing = !!editTransaction;
 
   const [transactionType, setTransactionType] = useState<'Entrada' | 'Saída'>('Saída');
   const [description, setDescription] = useState('');
@@ -30,69 +26,115 @@ const NewTransactionPage: React.FC = () => {
   const [dateType, setDateType] = useState<'Hoje' | 'Ontem' | 'Outra'>('Hoje');
   const [customDate, setCustomDate] = useState(new Date());
 
-  const [categories, setCategories] = useState<Categoria[]>([]);
-  const [accounts, setAccounts] = useState<Conta[]>([]);
-  const [creditCards, setCreditCards] = useState<Cartao[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: categoriesData } = await supabase.from('categories').select('id, name');
-      const { data: accountsData } = await supabase.from('accounts').select('id, name AS banco');
-      const { data: cardsData } = await supabase.from('credit_cards').select('id, name');
-
-      if (categoriesData) setCategories(categoriesData.map(c => ({...c, nome: c.name})));
-      if (accountsData) setAccounts(accountsData.map(a => ({...a, banco: a.banco})));
-      if (cardsData) setCreditCards(cardsData.map(c => ({...c, nome: c.name})));
-    };
-
     fetchData();
   }, []);
 
-  const combinedAccounts = [
-    ...accounts.map(a => ({ id: `acc-${a.id}`, name: a.banco, type: 'Conta' })),
-    ...creditCards.map(c => ({ id: `card-${c.id}`, name: c.nome, type: 'Cartão' }))
+  useEffect(() => {
+    // Se estiver em modo de edição, preencher os campos
+    if (isEditing && editTransaction) {
+      setTransactionType(editTransaction.type === 'income' ? 'Entrada' : 'Saída');
+      setDescription(editTransaction.description || '');
+      setAmount(editTransaction.amount.toString());
+      setCategoryId(editTransaction.category_id || '');
+      
+      // Determinar se é conta ou cartão
+      if (editTransaction.account_id) {
+        setAccountId(`acc-${editTransaction.account_id}`);
+      } else if (editTransaction.credit_card_id) {
+        setAccountId(`card-${editTransaction.credit_card_id}`);
+      }
+      
+      // Configurar data
+      const transDate = new Date(editTransaction.date + 'T00:00:00');
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Remover horas para comparação correta
+      today.setHours(0, 0, 0, 0);
+      yesterday.setHours(0, 0, 0, 0);
+      transDate.setHours(0, 0, 0, 0);
+      
+      if (transDate.getTime() === today.getTime()) {
+        setDateType('Hoje');
+      } else if (transDate.getTime() === yesterday.getTime()) {
+        setDateType('Ontem');
+      } else {
+        setDateType('Outra');
+        setCustomDate(transDate);
+      }
+    }
+  }, [isEditing, editTransaction]);
+
+  const fetchData = async () => {
+    try {
+      const [categoriesData, accountsData, cardsData] = await Promise.all([
+        categoriesAPI.getAll(),
+        accountsAPI.getAll(),
+        creditCardsAPI.getAll(),
+      ]);
+
+      setCategories(categoriesData);
+      setAccounts(accountsData);
+      setCreditCards(cardsData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    }
+  };
+
+  const combinedAccounts: CombinedAccount[] = [
+    ...accounts.map(a => ({ id: `acc-${a.id}`, name: a.name, type: 'Conta' as const })),
+    ...creditCards.map(c => ({ id: `card-${c.id}`, name: c.name, type: 'Cartão' as const }))
   ];
 
   const handleSave = async () => {
     if (!user) {
-        console.error("User not authenticated");
-        return;
+      console.error("User not authenticated");
+      return;
     }
 
     let transactionDate = new Date();
     if (dateType === 'Ontem') {
       transactionDate.setDate(transactionDate.getDate() - 1);
     } else if (dateType === 'Outra') {
-      transactionDate = new Date(customDate); // Ensure it's a new Date object
+      transactionDate = new Date(customDate);
     }
 
-    const newTransaction = {
-      user_id: user.id,
-      type: transactionType === 'Entrada' ? 'income' : 'expense',
+    const transactionData = {
+      type: transactionType === 'Entrada' ? 'income' as const : 'expense' as const,
       description,
       amount: parseFloat(amount),
-      category_id: categoryId || null,
-      account_id: accountId.startsWith('acc-') ? accountId.replace('acc-', '') : null,
-      credit_card_id: accountId.startsWith('card-') ? accountId.replace('card-', '') : null,
+      category_id: categoryId || undefined,
+      account_id: accountId.startsWith('acc-') ? accountId.replace('acc-', '') : undefined,
+      credit_card_id: accountId.startsWith('card-') ? accountId.replace('card-', '') : undefined,
       date: transactionDate.toISOString().split('T')[0],
     };
     
     try {
-        const { error } = await supabase.from('transactions').insert([newTransaction]);
-        if (error) throw error;
-        navigate('/'); // Navigate to dashboard on success
+      if (isEditing && editTransaction) {
+        // Atualizar transação existente
+        await transactionsAPI.update(editTransaction.id, transactionData);
+      } else {
+        // Criar nova transação
+        await transactionsAPI.create(transactionData);
+      }
+      navigate('/extrato');
     } catch (error) {
-        console.error("Error saving transaction:", error);
-        // TODO: Show error to user
+      console.error("Error saving transaction:", error);
+      alert('Erro ao salvar transação. Verifique os dados.');
     }
   };
-  
-  // Note: I had to correct the supabase query for accounts to use 'name AS banco'
-  // Also corrected the customDate handler to work with the date input value.
 
   return (
     <div className="new-transaction-page-container">
-      <h2 className="new-transaction-page-title">Registrar Transação</h2>
+      <h2 className="new-transaction-page-title">
+        {isEditing ? 'Editar Transação' : 'Registrar Transação'}
+      </h2>
       <div className="transaction-form">
         <div className="tipo-toggle">
           <button
@@ -125,7 +167,7 @@ const NewTransactionPage: React.FC = () => {
           <label>Categoria</label>
           <select value={categoryId} onChange={e => setCategoryId(e.target.value)}>
             <option value="">Selecione...</option>
-            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.nome}</option>)}
+            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
         </div>
         
@@ -149,7 +191,7 @@ const NewTransactionPage: React.FC = () => {
               <input 
                 type="date" 
                 value={customDate.toISOString().split('T')[0]}
-                onChange={e => setCustomDate(new Date(e.target.value + 'T00:00:00'))} // Fix timezone issues
+                onChange={e => setCustomDate(new Date(e.target.value + 'T00:00:00'))}
               />
             </div>
           )}
@@ -157,7 +199,9 @@ const NewTransactionPage: React.FC = () => {
 
         <div className="modal-actions">
           <button type="button" className="button-secondary" onClick={() => navigate(-1)}>Cancelar</button>
-          <button type="button" className="button-primary" onClick={handleSave}>Salvar</button>
+          <button type="button" className="button-primary" onClick={handleSave}>
+            {isEditing ? 'Atualizar' : 'Salvar'}
+          </button>
         </div>
       </div>
     </div>
@@ -165,4 +209,3 @@ const NewTransactionPage: React.FC = () => {
 };
 
 export default NewTransactionPage;
-

@@ -1,4 +1,4 @@
-import { Transaction, CreditCard } from '../../lib/supabase';
+import { Transaction, CreditCard } from '../../lib/api';
 import { CreditCard as CreditCardIcon } from 'lucide-react';
 
 interface CreditCardMonthlyChartProps {
@@ -16,34 +16,71 @@ export default function CreditCardMonthlyChart({ transactions, creditCards }: Cr
     }).format(value);
   };
 
-  // Obter últimos 6 meses de fatura do cartão
+  // Obter fatura do cartão por mês para o ano de 2026 (janeiro a dezembro)
   const getMonthsData = () => {
     const months = [];
     const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const year = 2026;
     
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const monthName = monthNames[date.getMonth()];
+    // Gerar todos os 12 meses de 2026
+    for (let month = 1; month <= 12; month++) {
+      const monthName = monthNames[month - 1];
       
-      // Calcular fatura do mês (gastos com cartão)
-      // Assumindo que transações sem category_id ou com type 'expense' podem ser do cartão
-      // Você pode ajustar essa lógica conforme sua necessidade
-      const monthTransactions = transactions.filter((t) => {
-        const tDate = new Date(t.date);
-        return tDate.getMonth() + 1 === month && tDate.getFullYear() === year && t.type === 'expense';
-      });
+      // Calcular fatura do mês baseado no closing_day de cada cartão
+      let cardInvoice = 0;
 
-      // Para simplificar, vamos considerar todas as despesas como possíveis gastos do cartão
-      // Em um sistema real, você teria uma flag ou campo indicando se foi pago com cartão
-      const cardExpense = monthTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+      creditCards.forEach((card) => {
+        if (!card.closing_day) {
+          // Se não tem closing_day, não podemos calcular a fatura mensal corretamente
+          // Vamos ignorar este cartão para o cálculo mensal
+          return;
+        }
+
+        const closingDay = card.closing_day;
+        
+        // Transações do cartão
+        const cardTransactions = transactions.filter(
+          (t) => t.credit_card_id === card.id && t.type === 'expense'
+        );
+
+        cardTransactions.forEach((transaction) => {
+          const transDate = new Date(transaction.date + 'T00:00:00');
+          const transDay = transDate.getDate();
+          const transMonth = transDate.getMonth() + 1;
+          const transYear = transDate.getFullYear();
+
+          // Determinar a qual fatura pertence a transação
+          // Regra do cartão:
+          // - Compra no dia X (fechamento) ou antes: vai para fatura do mês da transação
+          // - Compra após o dia X: vai para fatura do próximo mês
+          
+          let invoiceMonth = transMonth;
+          let invoiceYear = transYear;
+
+          if (transDay > closingDay) {
+            // Compra após o fechamento: vai para fatura do próximo mês
+            invoiceMonth = transMonth + 1;
+            if (invoiceMonth > 12) {
+              invoiceMonth = 1;
+              invoiceYear = transYear + 1;
+            }
+          }
+          // Se transDay <= closingDay, a transação vai para a fatura do mês da transação
+
+          // Verificar se esta transação pertence à fatura do mês que estamos calculando
+          const belongsToThisInvoice = 
+            invoiceYear === year && invoiceMonth === month;
+
+          if (belongsToThisInvoice) {
+            cardInvoice += Number(transaction.amount);
+          }
+        });
+      });
       
       months.push({
         label: `${monthName}/${year.toString().slice(-2)}`,
-        expense: cardExpense,
-        monthIndex: i,
+        expense: cardInvoice,
+        monthIndex: month - 1,
       });
     }
     

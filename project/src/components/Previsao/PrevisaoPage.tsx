@@ -1,148 +1,695 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { transactionsAPI, categoriesAPI, accountsAPI, creditCardsAPI, fixedTransactionsAPI } from '../../lib/api';
+import type { Transaction, Category, Account, CreditCard, FixedTransaction } from '../../lib/api';
+import { ChevronLeft, ChevronRight, Plus, Edit, Trash2 } from 'lucide-react';
 import Modal from '../Modal/Modal';
-import './Previsao.css';
-import { FaPlus, FaTrash, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-
-// Unified type for forecast entries
-export interface PrevisaoItem {
-  id: string;
-  dia: number;
-  tipo: 'Entrada' | 'Saída';
-  valor: number;
-  descricao: string;
-  conta?: string;
-}
-
-// Sample data for the initial month
-const samplePrevisoes: PrevisaoItem[] = [
-  { id: '1', dia: 5, tipo: 'Saída', valor: 250, descricao: 'Plano de Saúde', conta: 'Conta Corrente' },
-  { id: '2', dia: 1, tipo: 'Entrada', valor: 8000, descricao: 'Salário', conta: 'Conta Salário' },
-  { id: '3', dia: 10, tipo: 'Saída', valor: 150, descricao: 'Internet', conta: 'Cartão de Crédito' },
-];
-
-// Helper to get a month-year key string (e.g., "2026-01")
-const getMonthKey = (date: Date) => {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  return `${year}-${String(month).padStart(2, '0')}`;
-};
+import './PrevisaoPage.css';
 
 export default function PrevisaoPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [fixedTransactions, setFixedTransactions] = useState<FixedTransaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [previsoesPorMes, setPrevisoesPorMes] = useState<{ [key: string]: PrevisaoItem[] }>({
-    [getMonthKey(new Date())]: samplePrevisoes,
+  // Estado do mês selecionado (iniciando em Janeiro 2026)
+  const [selectedMonth, setSelectedMonth] = useState(1); // 1 = Janeiro
+  const [selectedYear, setSelectedYear] = useState(2026);
+
+  // Estados para modais de receitas/despesas fixas
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [editingFixed, setEditingFixed] = useState<FixedTransaction | null>(null);
+
+  // Form state para receitas/despesas fixas
+  const [fixedForm, setFixedForm] = useState({
+    description: '',
+    amount: '',
+    day_of_month: '1',
+    category_id: '',
+    account_id: '',
+    credit_card_id: '',
   });
 
-  const currentMonthKey = getMonthKey(currentDate);
-  const previsoes = previsoesPorMes[currentMonthKey] || [];
+  useEffect(() => {
+    if (user) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
-  const handleMonthChange = (direction: 'next' | 'prev') => {
-    setCurrentDate(prevDate => {
-      const newDate = new Date(prevDate);
-      const newMonth = direction === 'next' ? newDate.getMonth() + 1 : newDate.getMonth() - 1;
-      newDate.setMonth(newMonth, 1); // Set to day 1 to avoid month skipping issues
+  const loadData = async () => {
+    if (!user) return;
 
-      const newMonthKey = getMonthKey(newDate);
-      const oldMonthKey = getMonthKey(prevDate);
+    try {
+      const [transactionsData, fixedData, categoriesData, accountsData, creditCardsData] = await Promise.all([
+        transactionsAPI.getAll(),
+        fixedTransactionsAPI.getAll(),
+        categoriesAPI.getAll(),
+        accountsAPI.getAll(),
+        creditCardsAPI.getAll(),
+      ]);
 
-      // If the new month has no data, copy it from the current month
-      setPrevisoesPorMes(prevData => {
-        if (!prevData[newMonthKey] && prevData[oldMonthKey]) {
-          return { ...prevData, [newMonthKey]: prevData[oldMonthKey] };
+      setTransactions(transactionsData);
+      setFixedTransactions(fixedData);
+      setCategories(categoriesData);
+      setAccounts(accountsData);
+      setCreditCards(creditCardsData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const fullMonthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      if (selectedMonth === 1) {
+        setSelectedMonth(12);
+        setSelectedYear(selectedYear - 1);
+      } else {
+        setSelectedMonth(selectedMonth - 1);
+      }
+    } else {
+      if (selectedMonth === 12) {
+        setSelectedMonth(1);
+        setSelectedYear(selectedYear + 1);
+      } else {
+        setSelectedMonth(selectedMonth + 1);
+      }
+    }
+  };
+
+  // Calcular quantos dias tem o mês selecionado
+  const getDaysInMonth = (month: number, year: number) => {
+    return new Date(year, month, 0).getDate();
+  };
+
+  // Função auxiliar para calcular saldo final de um mês específico (usado para calcular saldo inicial do próximo mês)
+  const calculateMonthEndBalance = (month: number, year: number): number => {
+    const daysInMonth = getDaysInMonth(month, year);
+    const lastDayOfMonth = new Date(year, month - 1, daysInMonth);
+    
+    // Calcular saldo inicial do mês (recursivamente)
+    let balance = accounts.reduce((sum, account) => sum + Number(account.initial_balance || 0), 0);
+    
+    if (month > 1 || year > 2026) {
+      const prevMonth = month === 1 ? 12 : month - 1;
+      const prevYear = month === 1 ? year - 1 : year;
+      balance = calculateMonthEndBalance(prevMonth, prevYear);
+    }
+    
+    // Calcular transações do mês
+    let monthIncome = 0;
+    let monthExpense = 0;
+    
+    // Transações reais do mês
+    transactions.forEach((t) => {
+      const tDate = new Date(t.date + 'T00:00:00');
+      const tYear = tDate.getFullYear();
+      const tMonth = tDate.getMonth() + 1;
+      
+      if (tYear === year && tMonth === month) {
+        if (t.type === 'income') {
+          monthIncome += Number(t.amount);
+        } else if (t.type === 'expense' && t.account_id && !t.credit_card_id) {
+          monthExpense += Number(t.amount);
         }
-        return prevData;
+      }
+    });
+    
+    // Transações fixas do mês
+    fixedTransactions.forEach((fixed) => {
+      let targetDay = fixed.day_of_month;
+      if (targetDay > daysInMonth) {
+        targetDay = daysInMonth;
+      }
+      
+      if (fixed.type === 'income') {
+        monthIncome += Number(fixed.amount);
+      } else if (fixed.type === 'expense' && fixed.account_id && !fixed.credit_card_id) {
+        monthExpense += Number(fixed.amount);
+      }
+    });
+    
+    // Faturas que venceram neste mês (mesma lógica do dashboard)
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const currentDay = now.getDate();
+    
+    creditCards.forEach((card) => {
+      if (!card.due_day || !card.closing_day) return;
+      
+      const dueDay = card.due_day;
+      const closingDay = card.closing_day;
+      let targetDueDay = dueDay;
+      if (targetDueDay > daysInMonth) {
+        targetDueDay = daysInMonth;
+      }
+      
+      // A fatura que vence neste mês foi fechada no mês anterior
+      let invoiceClosingMonth = month - 1;
+      let invoiceClosingYear = year;
+      if (invoiceClosingMonth < 1) {
+        invoiceClosingMonth = 12;
+        invoiceClosingYear = year - 1;
+      }
+      
+      // Verificar se a fatura venceu até o final deste mês
+      const invoiceDueDate = new Date(year, month - 1, targetDueDay);
+      const isPastMonth = (year < currentYear) || (year === currentYear && month < currentMonth);
+      const isCalculatedMonth = year === currentYear && month === currentMonth;
+      
+      // Se é mês passado, sempre incluir (fatura já venceu)
+      // Se é mês atual, verificar se já venceu (currentDay >= dueDay)
+      // Se é mês futuro, não incluir (ainda não venceu)
+      const shouldInclude = isPastMonth || (isCalculatedMonth && currentDay >= targetDueDay);
+      
+      if (!shouldInclude) {
+        return; // Pula este cartão
+      }
+      
+      const cardTransactions = transactions.filter(
+        (t) => t.credit_card_id === card.id && t.type === 'expense'
+      );
+      
+      let invoiceAmount = 0;
+      cardTransactions.forEach((transaction) => {
+        const transDate = new Date(transaction.date + 'T00:00:00');
+        const transDay = transDate.getDate();
+        const transMonth = transDate.getMonth() + 1;
+        const transYear = transDate.getFullYear();
+        
+        let transactionInvoiceMonth = transMonth;
+        let transactionInvoiceYear = transYear;
+        
+        if (transDay > closingDay) {
+          transactionInvoiceMonth = transMonth + 1;
+          if (transactionInvoiceMonth > 12) {
+            transactionInvoiceMonth = 1;
+            transactionInvoiceYear = transYear + 1;
+          }
+        }
+        
+        if (transactionInvoiceYear === invoiceClosingYear && transactionInvoiceMonth === invoiceClosingMonth) {
+          invoiceAmount += Number(transaction.amount);
+        }
+      });
+      
+      monthExpense += invoiceAmount;
+    });
+    
+    return balance + monthIncome - monthExpense;
+  };
+
+  // Gerar planilha dia a dia do mês
+  const generateDailySpreadsheet = () => {
+    const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
+    const days = [];
+    
+    // Calcular saldo inicial
+    // Se for janeiro/2026, usar saldo inicial das contas
+    // Se não for janeiro, usar saldo final do mês anterior
+    let initialBalance: number;
+    
+    if (selectedMonth === 1 && selectedYear === 2026) {
+      // Janeiro 2026: usar saldo inicial das contas
+      initialBalance = accounts.reduce((sum, account) => sum + Number(account.initial_balance || 0), 0);
+    } else {
+      // Outros meses: calcular saldo final do mês anterior
+      const previousMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
+      const previousYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+      initialBalance = calculateMonthEndBalance(previousMonth, previousYear);
+    }
+    
+    let runningBalance = initialBalance;
+
+    // Mapear transações fixas e reais do mês
+    const monthTransactions: { [day: number]: { income: number; expense: number } } = {};
+    
+    // Inicializar todos os dias
+    for (let day = 1; day <= daysInMonth; day++) {
+      monthTransactions[day] = { income: 0, expense: 0 };
+    }
+
+    // Adicionar transações fixas do mês
+    fixedTransactions.forEach((fixed) => {
+      let targetDay = fixed.day_of_month;
+      // Se o dia for maior que os dias do mês, usar o último dia (ex: dia 31 em fevereiro)
+      if (targetDay > daysInMonth) {
+        targetDay = daysInMonth;
+      }
+
+      if (fixed.type === 'income') {
+        monthTransactions[targetDay].income += Number(fixed.amount);
+      } else {
+        // Despesas fixas apenas se for conta bancária (não cartão)
+        if (fixed.account_id && !fixed.credit_card_id) {
+          monthTransactions[targetDay].expense += Number(fixed.amount);
+        }
+      }
+    });
+
+    // Adicionar transações reais do mês
+    transactions.forEach((t) => {
+      const tDate = new Date(t.date + 'T00:00:00');
+      const tYear = tDate.getFullYear();
+      const tMonth = tDate.getMonth() + 1;
+      const tDay = tDate.getDate();
+
+      if (tYear === selectedYear && tMonth === selectedMonth) {
+        if (t.type === 'income') {
+          monthTransactions[tDay].income += Number(t.amount);
+        } else if (t.type === 'expense' && t.account_id && !t.credit_card_id) {
+          // Apenas despesas de conta bancária (não cartão)
+          monthTransactions[tDay].expense += Number(t.amount);
+        }
+      }
+    });
+
+    // Adicionar faturas de cartão de crédito no dia de vencimento
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const currentDay = now.getDate();
+
+    creditCards.forEach((card) => {
+      if (!card.due_day) {
+        // Se não tem due_day definido, não podemos calcular quando vence
+        return;
+      }
+
+      if (!card.closing_day) {
+        // Se não tem closing_day, não podemos calcular a fatura corretamente
+        return;
+      }
+
+      const dueDay = card.due_day;
+      const closingDay = card.closing_day;
+
+      // Verificar se o dia de vencimento está dentro do mês selecionado
+      // Se o due_day for maior que os dias do mês, usar o último dia
+      let targetDueDay = dueDay;
+      if (targetDueDay > daysInMonth) {
+        targetDueDay = daysInMonth;
+      }
+
+      // Buscar todas as transações do cartão
+      const cardTransactions = transactions.filter(
+        (t) => t.credit_card_id === card.id && t.type === 'expense'
+      );
+
+      // Usar EXATAMENTE a mesma lógica do dashboard (calculateCardInvoice)
+      // No dashboard, a fatura atual é aquela que ainda tem que pagar este mês
+      let cardInvoice = 0;
+      const isCurrentMonth = selectedYear === currentYear && selectedMonth === currentMonth;
+      
+      // Para o mês atual: usar exatamente a mesma lógica do dashboard
+      // Para meses passados/futuros: calcular qual fatura vence naquele mês
+      
+      let invoiceMonthToCalculate: number;
+      let invoiceYearToCalculate: number;
+      let shouldShowInThisMonth = false;
+      
+      if (isCurrentMonth) {
+        // Mês atual: usar mesma lógica do dashboard
+        // Determinar qual é a fatura atual baseado no closing_day
+        invoiceMonthToCalculate = currentMonth;
+        invoiceYearToCalculate = currentYear;
+        
+        if (currentDay < closingDay) {
+          // Ainda não passou o dia de fechamento deste mês
+          // A fatura atual é do mês anterior (que já fechou) e vence neste mês
+          invoiceMonthToCalculate = currentMonth - 1;
+          if (invoiceMonthToCalculate < 1) {
+            invoiceMonthToCalculate = 12;
+            invoiceYearToCalculate = currentYear - 1;
+          }
+          // Esta fatura vence no mês atual → mostrar no mês atual
+          shouldShowInThisMonth = true;
+        } else {
+          // Já passou o dia de fechamento deste mês
+          // A fatura atual é deste mês (que já fechou)
+          // Esta fatura vence no próximo mês, então não aparece no mês atual
+          // Mas para o cálculo de saldo, não devemos incluir aqui
+          shouldShowInThisMonth = false;
+          return; // Pula este cartão - fatura vence no próximo mês
+        }
+      } else {
+        // Mês passado ou futuro: calcular qual fatura vence no mês selecionado
+        // A fatura que vence no mês selecionado foi fechada no mês anterior
+        invoiceMonthToCalculate = selectedMonth - 1;
+        invoiceYearToCalculate = selectedYear;
+        if (invoiceMonthToCalculate < 1) {
+          invoiceMonthToCalculate = 12;
+          invoiceYearToCalculate = selectedYear - 1;
+        }
+        shouldShowInThisMonth = true;
+      }
+      
+      // Se não deve aparecer no mês atual, pular
+      if (!shouldShowInThisMonth) {
+        return; // Pula este cartão
+      }
+
+      // Calcular o total da fatura usando a mesma lógica do dashboard
+      cardTransactions.forEach((transaction) => {
+        const transDate = new Date(transaction.date + 'T00:00:00');
+        const transDay = transDate.getDate();
+        const transMonth = transDate.getMonth() + 1;
+        const transYear = transDate.getFullYear();
+
+        // Determinar a qual fatura pertence a transação (mesma lógica do dashboard)
+        let invoiceMonth = transMonth;
+        let invoiceYear = transYear;
+
+        if (transDay > closingDay) {
+          // Compra após o fechamento: vai para fatura do próximo mês
+          invoiceMonth = transMonth + 1;
+          if (invoiceMonth > 12) {
+            invoiceMonth = 1;
+            invoiceYear = transYear + 1;
+          }
+        }
+        // Se transDay <= closingDay, a transação vai para a fatura do mês da transação
+
+        // Verificar se esta transação pertence à fatura que estamos calculando
+        if (invoiceYear === invoiceYearToCalculate && invoiceMonth === invoiceMonthToCalculate) {
+          cardInvoice += Number(transaction.amount);
+        }
       });
 
-      return newDate;
+      // Adicionar a fatura no dia de vencimento
+      if (cardInvoice > 0) {
+        monthTransactions[targetDueDay].expense += cardInvoice;
+      }
+    });
+
+    // Gerar linhas da planilha
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayData = monthTransactions[day];
+      runningBalance = runningBalance + dayData.income - dayData.expense;
+
+      days.push({
+        day,
+        income: dayData.income,
+        expense: dayData.expense,
+        balance: runningBalance,
+      });
+    }
+
+    return days;
+  };
+
+  const handleOpenIncomeModal = (fixed?: FixedTransaction) => {
+    if (fixed) {
+      setEditingFixed(fixed);
+      setFixedForm({
+        description: fixed.description,
+        amount: fixed.amount.toString(),
+        day_of_month: fixed.day_of_month.toString(),
+        category_id: fixed.category_id || '',
+        account_id: '',
+        credit_card_id: '',
+      });
+    } else {
+      setEditingFixed(null);
+      setFixedForm({
+        description: '',
+        amount: '',
+        day_of_month: '1',
+        category_id: '',
+        account_id: '',
+        credit_card_id: '',
+      });
+    }
+    setIsIncomeModalOpen(true);
+  };
+
+  const handleOpenExpenseModal = (fixed?: FixedTransaction) => {
+    if (fixed) {
+      setEditingFixed(fixed);
+      setFixedForm({
+        description: fixed.description,
+        amount: fixed.amount.toString(),
+        day_of_month: fixed.day_of_month.toString(),
+        category_id: fixed.category_id || '',
+        account_id: fixed.account_id || '',
+        credit_card_id: fixed.credit_card_id || '',
+      });
+    } else {
+      setEditingFixed(null);
+      setFixedForm({
+        description: '',
+        amount: '',
+        day_of_month: '1',
+        category_id: '',
+        account_id: '',
+        credit_card_id: '',
+      });
+    }
+    setIsExpenseModalOpen(true);
+  };
+
+  const handleCloseModals = () => {
+    setIsIncomeModalOpen(false);
+    setIsExpenseModalOpen(false);
+    setEditingFixed(null);
+    setFixedForm({
+      description: '',
+      amount: '',
+      day_of_month: '1',
+      category_id: '',
+      account_id: '',
+      credit_card_id: '',
     });
   };
 
-  const sortedPrevisoes = useMemo(() => {
-    return [...previsoes].sort((a, b) => a.dia - b.dia);
-  }, [previsoes]);
+  const handleSubmitFixed = async (type: 'income' | 'expense') => {
+    try {
+      const data: any = {
+        type,
+        description: fixedForm.description,
+        amount: parseFloat(fixedForm.amount),
+        day_of_month: parseInt(fixedForm.day_of_month),
+        category_id: fixedForm.category_id || null,
+      };
 
-  const previsaoSaldoDiario = useMemo(() => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const dias = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-    let saldoAtual = 0;
+      if (type === 'expense') {
+        if (!fixedForm.account_id && !fixedForm.credit_card_id) {
+          alert('Despesa fixa deve ter uma conta ou cartão de crédito');
+          return;
+        }
+        data.account_id = fixedForm.account_id || null;
+        data.credit_card_id = fixedForm.credit_card_id || null;
+      }
 
-    return dias.map((dia) => {
-      const entradasDoDia = previsoes
-        .filter((p) => p.dia === dia && p.tipo === 'Entrada')
-        .reduce((sum, p) => sum + p.valor, 0);
+      if (editingFixed) {
+        await fixedTransactionsAPI.update(editingFixed.id, data);
+      } else {
+        await fixedTransactionsAPI.create(data);
+      }
 
-      const saidasDoDia = previsoes
-        .filter((p) => p.dia === dia && p.tipo === 'Saída')
-        .reduce((sum, p) => sum + p.valor, 0);
-
-      saldoAtual = saldoAtual + entradasDoDia - saidasDoDia;
-
-      return { dia, entrada: entradasDoDia, saida: saidasDoDia, saldo: saldoAtual };
-    });
-  }, [previsoes, currentDate]);
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
-
-  const handleSave = (newItem: PrevisaoItem) => {
-    setPrevisoesPorMes(prev => ({
-      ...prev,
-      [currentMonthKey]: [...(prev[currentMonthKey] || []), newItem],
-    }));
-    closeModal();
+      await loadData();
+      handleCloseModals();
+    } catch (error) {
+      console.error('Erro ao salvar receita/despesa fixa:', error);
+      alert('Erro ao salvar');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setPrevisoesPorMes(prev => ({
-      ...prev,
-      [currentMonthKey]: prev[currentMonthKey].filter(p => p.id !== id),
-    }));
+  const handleDeleteFixed = async (id: string) => {
+    if (!confirm('Deseja realmente excluir esta receita/despesa fixa?')) return;
+
+    try {
+      await fixedTransactionsAPI.delete(id);
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      alert('Erro ao excluir');
+    }
   };
+
+  const incomeFixed = fixedTransactions.filter((f) => f.type === 'income');
+  const expenseFixed = fixedTransactions.filter((f) => f.type === 'expense');
+  const spreadsheetData = generateDailySpreadsheet();
+  const incomeCategories = categories.filter((c) => c.type === 'income');
+  const expenseCategories = categories.filter((c) => c.type === 'expense');
+
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: '#000000', 
+        color: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div>Carregando...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="previsao-container">
-      {/* Month Navigation */}
-      <div className="month-navigation">
-        <button onClick={() => handleMonthChange('prev')} className="month-nav-button">
-          <FaChevronLeft />
+    <div className="previsao-page">
+      {/* Header com navegação de mês */}
+      <div className="previsao-header">
+        <button 
+          className="month-nav-button"
+          onClick={() => navigateMonth('prev')}
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft size={24} />
         </button>
-        <h2 className="current-month-display">
-          {currentDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).replace(' de ', '/').replace('.', '')}
+        
+        <h2 className="previsao-title">
+          {monthNames[selectedMonth - 1]}/{selectedYear}
         </h2>
-        <button onClick={() => handleMonthChange('next')} className="month-nav-button">
-          <FaChevronRight />
+        
+        <button 
+          className="month-nav-button"
+          onClick={() => navigateMonth('next')}
+          aria-label="Próximo mês"
+        >
+          <ChevronRight size={24} />
         </button>
       </div>
 
-      {/* Lançamentos Fixos */}
-      <div className="previsao-section">
-        <div className="previsao-header">
-          <h2 className="previsao-title">Lançamentos Fixos</h2>
-          <button className="add-previsao-button" onClick={openModal}>
-            <FaPlus /> Adicionar
-          </button>
+      {/* Seções de Receitas Fixas e Despesas Fixas */}
+      <div className="fixed-sections-container">
+        {/* Receitas Fixas */}
+        <div className="fixed-section">
+          <div className="fixed-section-header">
+            <h3>Receitas Fixas</h3>
+            <button 
+              className="add-fixed-button"
+              onClick={() => handleOpenIncomeModal()}
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+          
+          <div className="fixed-list">
+            {incomeFixed.length === 0 ? (
+              <div className="empty-fixed">Nenhuma receita fixa cadastrada</div>
+            ) : (
+              incomeFixed.map((fixed) => (
+                <div key={fixed.id} className="fixed-item">
+                  <div className="fixed-item-info">
+                    <span className="fixed-day">Dia {fixed.day_of_month}</span>
+                    <span className="fixed-description">{fixed.description}</span>
+                    <span className="fixed-amount income">{formatCurrency(fixed.amount)}</span>
+                  </div>
+                  <div className="fixed-item-actions">
+                    <button
+                      className="icon-button edit"
+                      onClick={() => handleOpenIncomeModal(fixed)}
+                      title="Editar"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      className="icon-button delete"
+                      onClick={() => handleDeleteFixed(fixed.id)}
+                      title="Excluir"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-        <div className="table-container lancamentos-fixos-table-container">
-          <table>
+
+        {/* Despesas Fixas */}
+        <div className="fixed-section">
+          <div className="fixed-section-header">
+            <h3>Despesas Fixas</h3>
+            <button 
+              className="add-fixed-button"
+              onClick={() => handleOpenExpenseModal()}
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+          
+          <div className="fixed-list">
+            {expenseFixed.length === 0 ? (
+              <div className="empty-fixed">Nenhuma despesa fixa cadastrada</div>
+            ) : (
+              expenseFixed.map((fixed) => (
+                <div key={fixed.id} className="fixed-item">
+                  <div className="fixed-item-info">
+                    <span className="fixed-day">Dia {fixed.day_of_month}</span>
+                    <span className="fixed-description">{fixed.description}</span>
+                    <span className="fixed-amount expense">{formatCurrency(fixed.amount)}</span>
+                  </div>
+                  <div className="fixed-item-actions">
+                    <button
+                      className="icon-button edit"
+                      onClick={() => handleOpenExpenseModal(fixed)}
+                      title="Editar"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      className="icon-button delete"
+                      onClick={() => handleDeleteFixed(fixed.id)}
+                      title="Excluir"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Planilha Dia a Dia */}
+      <div className="spreadsheet-card">
+        <h3 className="spreadsheet-title">Previsão Mensal - {fullMonthNames[selectedMonth - 1]}/{selectedYear}</h3>
+        
+        <div className="spreadsheet-container">
+          <table className="daily-spreadsheet">
             <thead>
               <tr>
-                <th>Dia</th><th>Tipo</th><th>Descrição</th><th>Conta</th><th>Valor</th><th>Ações</th>
+                <th>Dia</th>
+                <th>Entrada</th>
+                <th>Saída</th>
+                <th>Saldo</th>
               </tr>
             </thead>
             <tbody>
-              {sortedPrevisoes.map((item) => (
-                <tr key={item.id}>
-                  <td>{String(item.dia).padStart(2, '0')}</td>
-                  <td><span className={`tipo-badge tipo-${item.tipo.toLowerCase()}`}>{item.tipo}</span></td>
-                  <td>{item.descricao}</td>
-                  <td>{item.conta || 'N/A'}</td>
-                  <td>{item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td>
-                    <button className="action-button delete-button" onClick={() => handleDelete(item.id)}><FaTrash /></button>
+              {spreadsheetData.map((row) => (
+                <tr key={row.day}>
+                  <td className="day-cell">{row.day}</td>
+                  <td className={`amount-cell income ${row.income > 0 ? 'has-value' : ''}`}>
+                    {row.income > 0 ? formatCurrency(row.income) : '-'}
+                  </td>
+                  <td className={`amount-cell expense ${row.expense > 0 ? 'has-value' : ''}`}>
+                    {row.expense > 0 ? formatCurrency(row.expense) : '-'}
+                  </td>
+                  <td className={`balance-cell ${row.balance >= 0 ? 'positive' : 'negative'}`}>
+                    {formatCurrency(row.balance)}
                   </td>
                 </tr>
               ))}
@@ -151,70 +698,173 @@ export default function PrevisaoPage() {
         </div>
       </div>
 
-      {/* Previsão de Saldo */}
-      <div className="previsao-section">
-        <div className="previsao-header">
-          <h2 className="previsao-title">Previsão de Saldo</h2>
-        </div>
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr><th>Dia</th><th>Entrada</th><th>Saída</th><th>Saldo</th></tr>
-            </thead>
-            <tbody>
-              {previsaoSaldoDiario.map((item) => (
-                <tr key={item.dia}>
-                  <td>{String(item.dia).padStart(2, '0')}</td>
-                  <td className="valor-entrada">{item.entrada > 0 ? item.entrada.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}</td>
-                  <td className="valor-saida">{item.saida > 0 ? item.saida.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}</td>
-                  <td className={`valor-saldo ${item.saldo >= 0 ? 'positivo' : 'negativo'}`}>{item.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Modal Receita Fixa */}
+      <Modal 
+        isOpen={isIncomeModalOpen} 
+        onClose={handleCloseModals}
+        title={editingFixed ? 'Editar Receita Fixa' : 'Nova Receita Fixa'}
+      >
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmitFixed('income'); }}>
+          <div className="form-field">
+            <label>Descrição *</label>
+            <input
+              type="text"
+              value={fixedForm.description}
+              onChange={(e) => setFixedForm({ ...fixedForm, description: e.target.value })}
+              required
+              placeholder="Ex: Salário"
+            />
+          </div>
 
-      {/* Modal */}
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Adicionar Lançamento Fixo">
-        <AddPrevisaoForm onSave={handleSave} onClose={closeModal} />
+          <div className="form-field">
+            <label>Valor *</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={fixedForm.amount}
+              onChange={(e) => setFixedForm({ ...fixedForm, amount: e.target.value })}
+              required
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="form-field">
+            <label>Dia do Mês *</label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              value={fixedForm.day_of_month}
+              onChange={(e) => setFixedForm({ ...fixedForm, day_of_month: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-field">
+            <label>Categoria</label>
+            <select
+              value={fixedForm.category_id}
+              onChange={(e) => setFixedForm({ ...fixedForm, category_id: e.target.value })}
+            >
+              <option value="">Selecione...</option>
+              {incomeCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="button-secondary" onClick={handleCloseModals}>
+              Cancelar
+            </button>
+            <button type="submit" className="button-primary">
+              {editingFixed ? 'Atualizar' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Despesa Fixa */}
+      <Modal 
+        isOpen={isExpenseModalOpen} 
+        onClose={handleCloseModals}
+        title={editingFixed ? 'Editar Despesa Fixa' : 'Nova Despesa Fixa'}
+      >
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmitFixed('expense'); }}>
+          <div className="form-field">
+            <label>Descrição *</label>
+            <input
+              type="text"
+              value={fixedForm.description}
+              onChange={(e) => setFixedForm({ ...fixedForm, description: e.target.value })}
+              required
+              placeholder="Ex: Aluguel"
+            />
+          </div>
+
+          <div className="form-field">
+            <label>Valor *</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={fixedForm.amount}
+              onChange={(e) => setFixedForm({ ...fixedForm, amount: e.target.value })}
+              required
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="form-field">
+            <label>Dia do Mês *</label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              value={fixedForm.day_of_month}
+              onChange={(e) => setFixedForm({ ...fixedForm, day_of_month: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-field">
+            <label>Categoria</label>
+            <select
+              value={fixedForm.category_id}
+              onChange={(e) => setFixedForm({ ...fixedForm, category_id: e.target.value })}
+            >
+              <option value="">Selecione...</option>
+              {expenseCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label>Conta Bancária</label>
+            <select
+              value={fixedForm.account_id}
+              onChange={(e) => setFixedForm({ ...fixedForm, account_id: e.target.value, credit_card_id: '' })}
+            >
+              <option value="">Selecione...</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label>Ou Cartão de Crédito</label>
+            <select
+              value={fixedForm.credit_card_id}
+              onChange={(e) => setFixedForm({ ...fixedForm, credit_card_id: e.target.value, account_id: '' })}
+            >
+              <option value="">Selecione...</option>
+              {creditCards.map((card) => (
+                <option key={card.id} value={card.id}>
+                  {card.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="button-secondary" onClick={handleCloseModals}>
+              Cancelar
+            </button>
+            <button type="submit" className="button-primary">
+              {editingFixed ? 'Atualizar' : 'Salvar'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
 }
-
-// Form component to be used inside the modal
-const AddPrevisaoForm: React.FC<{ onSave: (item: PrevisaoItem) => void; onClose: () => void; }> = ({ onSave, onClose }) => {
-  const [tipo, setTipo] = useState<'Entrada' | 'Saída'>('Saída');
-  // TODO: Add state and handlers for form fields (dia, valor, etc.)
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Form validation and data creation
-    const newItem: PrevisaoItem = {
-      id: Date.now().toString(),
-      dia: 15, // Placeholder
-      tipo,
-      valor: 100, // Placeholder
-      descricao: 'Placeholder', // Placeholder
-    };
-    onSave(newItem);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="previsao-modal-form">
-      <div className="tipo-toggle">
-        <button type="button" className={tipo === 'Saída' ? 'active' : ''} onClick={() => setTipo('Saída')}>Despesa</button>
-        <button type="button" className={tipo === 'Entrada' ? 'active' : ''} onClick={() => setTipo('Entrada')}>Receita</button>
-      </div>
-      <div className="form-field"><label>Dia do Lançamento</label><input type="number" min="1" max="31" required /></div>
-      <div className="form-field"><label>Valor</label><input type="number" step="0.01" min="0.01" required /></div>
-      <div className="form-field"><label>Descrição</label><input type="text" required /></div>
-      <div className="form-field"><label>Conta (Opcional)</label><input type="text" /></div>
-      <div className="modal-actions">
-        <button type="button" className="button-secondary" onClick={onClose}>Cancelar</button>
-        <button type="submit" className="button-primary">Salvar</button>
-      </div>
-    </form>
-  );
-};
