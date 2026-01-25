@@ -187,6 +187,148 @@
     gap: 0.5rem;
 }
 
+.period-inputs.custom input {
+    min-width: 130px;
+}
+
+.period-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.period-tab {
+    background-color: #1a1a1a;
+    color: #cccccc;
+    border: 1px solid #333333;
+    border-radius: 0.375rem;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+}
+
+.period-tab.active,
+.period-tab:hover {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+.period-select {
+  min-width: 160px;
+}
+
+.period-select {
+  position: relative;
+}
+
+.period-select-button {
+  width: 100%;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  border: 1px solid #333333;
+  border-radius: 0.375rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.period-select-button:hover {
+  border-color: #ffffff;
+}
+
+.period-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #0a0a0a;
+  border: 1px solid #333333;
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.period-menu-item {
+  width: 100%;
+  background: transparent;
+  color: #cccccc;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.period-menu-item:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.period-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.period-select-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.period-select-row .period-select {
+  min-width: 180px;
+}
+
+.period-select-row .period-nav-btn {
+  height: 36px;
+  width: 36px;
+  padding: 0;
+}
+
+.period-select-row .period-select-button {
+  height: 36px;
+  padding: 0 0.75rem;
+  line-height: 36px;
+}
+
+.period-nav-btn {
+    background: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #333333;
+    border-radius: 0.375rem;
+    padding: 0.35rem 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.period-nav-btn:hover {
+    border-color: #ffffff;
+}
+
+.period-label {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    min-width: 90px;
+    text-align: center;
+}
+
 .period-inputs span {
     color: #888888;
 }
