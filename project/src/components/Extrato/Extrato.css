@@ -352,6 +352,7 @@
 .filter-actions {
     display: flex;
     gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .filter-button {
@@ -383,6 +384,17 @@
 
 .clear-button:hover {
     background-color: #4a4a4a;
+}
+
+.export-button {
+    background-color: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #333333;
+}
+
+.export-button:hover {
+    border-color: #ffffff;
+    transform: translateY(-2px);
 }
 
 .table-container {
