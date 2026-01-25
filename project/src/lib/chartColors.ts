@@ -15,6 +15,20 @@ export const COLOR_PALETTE = [
   '#94A3B8', // Cinza claro
 ];
 
+// Paleta para receitas (mais frias/positivas)
+const INCOME_COLOR_PALETTE = [
+  '#10B981', // Verde
+  '#06B6D4', // Ciano
+  '#3B82F6', // Azul
+  '#14B8A6', // Teal
+  '#22C55E', // Verde claro
+  '#0EA5E9', // Azul claro
+  '#4F46E5', // Indigo
+  '#8B5CF6', // Roxo suave
+  '#22D3EE', // Ciano claro
+  '#94A3B8', // Cinza claro
+];
+
 // Mapeamento de cores por nome de categoria (gastos essenciais e variáveis)
 const CATEGORY_COLOR_MAP: { [key: string]: string } = {
   // Gastos essenciais
@@ -39,10 +53,12 @@ const CATEGORY_COLOR_MAP: { [key: string]: string } = {
   'Outras Saídas': '#94A3B8',
   
   // Categorias de entrada (receitas)
-  'Salário': '#10B981',
+  'Salário': '#666666',
   'Freelance': '#10B981',
   'Vendas': '#10B981',
-  'Investimentos': '#06B6D4',
+  'Investimentos': '#3B82F6',
+  'Dividendo': '#3B82F6',
+  'Dividendos': '#3B82F6',
   'Aluguel Recebido': '#06B6D4',
   'Cashback': '#10B981',
   'Reembolso': '#10B981',
@@ -65,7 +81,8 @@ export function getCategoryColor(
   categoryId: string, 
   categoryColor?: string | null, 
   categoryName?: string | null,
-  index?: number
+  index?: number,
+  categoryType?: 'income' | 'expense'
 ): string {
   // 1. Prioridade: cor definida no banco de dados (se válida)
   if (categoryColor && categoryColor !== '#000000' && categoryColor !== '#ffffff' && categoryColor !== '#000') {
@@ -88,7 +105,7 @@ export function getCategoryColor(
     hash = categoryId.charCodeAt(i) + ((hash << 5) - hash);
   }
   
-  const colorIndex = Math.abs(hash) % COLOR_PALETTE.length;
-  return COLOR_PALETTE[colorIndex];
+  const palette = categoryType === 'income' ? INCOME_COLOR_PALETTE : COLOR_PALETTE;
+  const colorIndex = Math.abs(hash) % palette.length;
+  return palette[colorIndex];
 }
-

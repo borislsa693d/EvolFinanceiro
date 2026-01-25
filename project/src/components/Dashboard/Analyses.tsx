@@ -14,11 +14,23 @@ export default function Analyses({ transactions, categories, creditCards }: Anal
     <div className="analyses-section">
       <h2 className="section-title">Análises</h2>
       <div className="analyses-grid">
-        <CategoryPieChart transactions={transactions} categories={categories} />
+        <div className="analyses-row">
+          <CategoryPieChart
+            transactions={transactions}
+            categories={categories}
+            type="income"
+            title="Receitas por Categoria"
+          />
+          <CategoryPieChart
+            transactions={transactions}
+            categories={categories}
+            type="expense"
+            title="Despesas por Categoria"
+          />
+        </div>
         <CreditCardMonthlyChart transactions={transactions} creditCards={creditCards} />
         <MonthlyEvolutionChart transactions={transactions} />
       </div>
     </div>
   );
 }
-

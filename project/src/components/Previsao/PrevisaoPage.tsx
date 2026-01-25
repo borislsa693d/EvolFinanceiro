@@ -73,6 +73,22 @@ export default function PrevisaoPage() {
     }).format(value);
   };
 
+  const formatCurrencyInput = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    const value = Number(digits) / 100;
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const parseCurrencyInput = (formatted: string) => {
+    const normalized = formatted.replace(/\./g, '').replace(',', '.');
+    const value = Number(normalized);
+    return Number.isNaN(value) ? 0 : value;
+  };
+
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const fullMonthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -97,6 +113,20 @@ export default function PrevisaoPage() {
   // Calcular quantos dias tem o mês selecionado
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month, 0).getDate();
+  };
+
+  const getMonthStart = (month: number, year: number) => {
+    return new Date(year, month - 1, 1);
+  };
+
+  const isFixedActiveForMonth = (fixed: FixedTransaction, month: number, year: number) => {
+    const monthStart = getMonthStart(month, year);
+    const startDate = fixed.start_date ? new Date(fixed.start_date + 'T00:00:00') : null;
+    const endDate = fixed.end_date ? new Date(fixed.end_date + 'T00:00:00') : null;
+
+    if (startDate && monthStart < startDate) return false;
+    if (endDate && monthStart > endDate) return false;
+    return true;
   };
 
   const getInvoiceMonthYear = (transactionDate: Date, closingDay: number) => {
@@ -153,6 +183,7 @@ export default function PrevisaoPage() {
     
     // Transações fixas do mês
     fixedTransactions.forEach((fixed) => {
+      if (!isFixedActiveForMonth(fixed, month, year)) return;
       let targetDay = fixed.day_of_month;
       if (targetDay > daysInMonth) {
         targetDay = daysInMonth;
@@ -160,7 +191,7 @@ export default function PrevisaoPage() {
       
       if (fixed.type === 'income') {
         monthIncome += Number(fixed.amount);
-      } else if (fixed.type === 'expense' && fixed.account_id && !fixed.credit_card_id) {
+      } else if (fixed.type === 'expense') {
         monthExpense += Number(fixed.amount);
       }
     });
@@ -223,6 +254,7 @@ export default function PrevisaoPage() {
 
     // Adicionar transações fixas do mês
     fixedTransactions.forEach((fixed) => {
+      if (!isFixedActiveForMonth(fixed, selectedMonth, selectedYear)) return;
       let targetDay = fixed.day_of_month;
       // Se o dia for maior que os dias do mês, usar o último dia (ex: dia 31 em fevereiro)
       if (targetDay > daysInMonth) {
@@ -232,10 +264,7 @@ export default function PrevisaoPage() {
       if (fixed.type === 'income') {
         monthTransactions[targetDay].income += Number(fixed.amount);
       } else {
-        // Despesas fixas apenas se for conta bancária (não cartão)
-        if (fixed.account_id && !fixed.credit_card_id) {
-          monthTransactions[targetDay].expense += Number(fixed.amount);
-        }
+        monthTransactions[targetDay].expense += Number(fixed.amount);
       }
     });
 
@@ -321,7 +350,7 @@ export default function PrevisaoPage() {
       setEditingFixed(fixed);
       setFixedForm({
         description: fixed.description,
-        amount: fixed.amount.toString(),
+        amount: formatCurrencyInput(fixed.amount.toString()),
         day_of_month: fixed.day_of_month.toString(),
         category_id: fixed.category_id || '',
         account_id: '',
@@ -346,7 +375,7 @@ export default function PrevisaoPage() {
       setEditingFixed(fixed);
       setFixedForm({
         description: fixed.description,
-        amount: fixed.amount.toString(),
+        amount: formatCurrencyInput(fixed.amount.toString()),
         day_of_month: fixed.day_of_month.toString(),
         category_id: fixed.category_id || '',
         account_id: fixed.account_id || '',
@@ -382,19 +411,22 @@ export default function PrevisaoPage() {
 
   const handleSubmitFixed = async (type: 'income' | 'expense') => {
     try {
+      const startDate = new Date(selectedYear, selectedMonth - 1, 1).toISOString().slice(0, 10);
+      if (!fixedForm.amount) {
+        alert('Informe um valor válido');
+        return;
+      }
+
       const data: any = {
         type,
         description: fixedForm.description,
-        amount: parseFloat(fixedForm.amount),
+        amount: parseCurrencyInput(fixedForm.amount),
         day_of_month: parseInt(fixedForm.day_of_month),
+        start_date: startDate,
         category_id: fixedForm.category_id || null,
       };
 
       if (type === 'expense') {
-        if (!fixedForm.account_id && !fixedForm.credit_card_id) {
-          alert('Despesa fixa deve ter uma conta ou cartão de crédito');
-          return;
-        }
         data.account_id = fixedForm.account_id || null;
         data.credit_card_id = fixedForm.credit_card_id || null;
       }
@@ -413,20 +445,27 @@ export default function PrevisaoPage() {
     }
   };
 
-  const handleDeleteFixed = async (id: string) => {
-    if (!confirm('Deseja realmente excluir esta receita/despesa fixa?')) return;
+  const handleDeleteFixed = async (fixed: FixedTransaction) => {
+    if (!confirm('Deseja encerrar esta receita/despesa fixa a partir deste mês?')) return;
 
     try {
-      await fixedTransactionsAPI.delete(id);
+      // Encerrar a recorrência no último dia do mês anterior ao selecionado
+      const previousMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
+      const previousYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+      const lastDayPrevMonth = new Date(previousYear, previousMonth, 0).getDate();
+      const endDate = new Date(previousYear, previousMonth - 1, lastDayPrevMonth);
+      const endDateStr = endDate.toISOString().slice(0, 10);
+
+      await fixedTransactionsAPI.update(fixed.id, { end_date: endDateStr });
       await loadData();
     } catch (error) {
-      console.error('Erro ao excluir:', error);
-      alert('Erro ao excluir');
+      console.error('Erro ao encerrar:', error);
+      alert('Erro ao encerrar');
     }
   };
 
-  const incomeFixed = fixedTransactions.filter((f) => f.type === 'income');
-  const expenseFixed = fixedTransactions.filter((f) => f.type === 'expense');
+  const incomeFixed = fixedTransactions.filter((f) => f.type === 'income' && isFixedActiveForMonth(f, selectedMonth, selectedYear));
+  const expenseFixed = fixedTransactions.filter((f) => f.type === 'expense' && isFixedActiveForMonth(f, selectedMonth, selectedYear));
   const spreadsheetData = generateDailySpreadsheet();
   const incomeCategories = categories.filter((c) => c.type === 'income');
   const expenseCategories = categories.filter((c) => c.type === 'expense');
@@ -506,8 +545,8 @@ export default function PrevisaoPage() {
                     </button>
                     <button
                       className="icon-button delete"
-                      onClick={() => handleDeleteFixed(fixed.id)}
-                      title="Excluir"
+                      onClick={() => handleDeleteFixed(fixed)}
+                      title="Encerrar"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -551,8 +590,8 @@ export default function PrevisaoPage() {
                     </button>
                     <button
                       className="icon-button delete"
-                      onClick={() => handleDeleteFixed(fixed.id)}
-                      title="Excluir"
+                      onClick={() => handleDeleteFixed(fixed)}
+                      title="Encerrar"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -566,7 +605,7 @@ export default function PrevisaoPage() {
 
       {/* Planilha Dia a Dia */}
       <div className="spreadsheet-card">
-        <h3 className="spreadsheet-title">Previsão Mensal - {fullMonthNames[selectedMonth - 1]}/{selectedYear}</h3>
+        <h3 className="spreadsheet-title">{fullMonthNames[selectedMonth - 1]}/{selectedYear}</h3>
         
         <div className="spreadsheet-container">
           <table className="daily-spreadsheet">
@@ -619,13 +658,12 @@ export default function PrevisaoPage() {
           <div className="form-field">
             <label>Valor *</label>
             <input
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
+              inputMode="decimal"
               value={fixedForm.amount}
-              onChange={(e) => setFixedForm({ ...fixedForm, amount: e.target.value })}
+              onChange={(e) => setFixedForm({ ...fixedForm, amount: formatCurrencyInput(e.target.value) })}
               required
-              placeholder="0.00"
+              placeholder="0,00"
             />
           </div>
 
@@ -688,13 +726,12 @@ export default function PrevisaoPage() {
           <div className="form-field">
             <label>Valor *</label>
             <input
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
+              inputMode="decimal"
               value={fixedForm.amount}
-              onChange={(e) => setFixedForm({ ...fixedForm, amount: e.target.value })}
+              onChange={(e) => setFixedForm({ ...fixedForm, amount: formatCurrencyInput(e.target.value) })}
               required
-              placeholder="0.00"
+              placeholder="0,00"
             />
           </div>
 
@@ -720,36 +757,6 @@ export default function PrevisaoPage() {
               {expenseCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label>Conta Bancária</label>
-            <select
-              value={fixedForm.account_id}
-              onChange={(e) => setFixedForm({ ...fixedForm, account_id: e.target.value, credit_card_id: '' })}
-            >
-              <option value="">Selecione...</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label>Ou Cartão de Crédito</label>
-            <select
-              value={fixedForm.credit_card_id}
-              onChange={(e) => setFixedForm({ ...fixedForm, credit_card_id: e.target.value, account_id: '' })}
-            >
-              <option value="">Selecione...</option>
-              {creditCards.map((card) => (
-                <option key={card.id} value={card.id}>
-                  {card.name}
                 </option>
               ))}
             </select>

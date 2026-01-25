@@ -295,6 +295,8 @@ export const fixedTransactionsAPI = {
     description: string;
     amount: number;
     day_of_month: number;
+    start_date?: string | null;
+    end_date?: string | null;
     category_id?: string;
     account_id?: string;
     credit_card_id?: string;
@@ -310,6 +312,8 @@ export const fixedTransactionsAPI = {
     description: string;
     amount: number;
     day_of_month: number;
+    start_date?: string | null;
+    end_date?: string | null;
     category_id?: string;
     account_id?: string;
     credit_card_id?: string;
@@ -377,9 +381,10 @@ export type FixedTransaction = {
   description: string;
   amount: number;
   day_of_month: number;
+  start_date?: string | null;
+  end_date?: string | null;
   category_id?: string | null;
   account_id?: string | null;
   credit_card_id?: string | null;
   created_at: string;
 };
-

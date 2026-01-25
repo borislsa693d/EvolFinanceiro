@@ -64,6 +64,15 @@ export default function Dashboard() {
     );
   }
 
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const monthTransactions = transactions.filter((t) => {
+    const tDate = new Date(t.date + 'T00:00:00');
+    return tDate >= monthStart && tDate <= monthEnd;
+  });
+
   return (
     <div className="dashboard">
       <div className="dashboard-header">
@@ -82,7 +91,8 @@ export default function Dashboard() {
 
       <div className="dashboard-content">
         <StatsCards
-          transactions={transactions}
+          transactions={monthTransactions}
+          allTransactions={transactions}
           creditCards={creditCards}
           accounts={accounts}
         />
@@ -91,10 +101,10 @@ export default function Dashboard() {
           <h2 className="section-title">Visão Geral</h2>
           <div className="charts-grid">
             <ExpensesByCategory
-              transactions={transactions}
+              transactions={monthTransactions}
               categories={categories}
             />
-            <WealthEvolution transactions={transactions} />
+            <WealthEvolution transactions={monthTransactions} />
           </div>
         </div>
       </div>

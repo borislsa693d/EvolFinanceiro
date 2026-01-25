@@ -112,10 +112,10 @@ const Extrato = () => {
     return date.toLocaleDateString('pt-BR');
   };
 
-  const formatCurrency = (value: number) => {
+  const formatAmount = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
   };
 
@@ -239,7 +239,10 @@ const Extrato = () => {
                   <td>{getAccountName(transaction.account_id || null, transaction.credit_card_id || null)}</td>
                   <td>{getCategoryName(transaction.category_id || null)}</td>
                   <td className={transaction.type === 'income' ? 'income-value' : 'expense-value'}>
-                    {formatCurrency(transaction.amount)}
+                    <span className="money">
+                      <span className="money-symbol">R$</span>
+                      <span className="money-value">{formatAmount(transaction.amount)}</span>
+                    </span>
                   </td>
                   <td>
                     <div className="action-buttons">

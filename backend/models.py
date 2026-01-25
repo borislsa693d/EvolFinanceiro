@@ -124,6 +124,8 @@ class FixedTransaction(Base):
     description = Column(String, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     day_of_month = Column(Integer, nullable=False)  # Dia do mês (1-31) em que ocorre
+    start_date = Column(Date, nullable=True)  # Data inicial (inclusive) da recorrência
+    end_date = Column(Date, nullable=True)  # Data final (inclusive) da recorrência
     category_id = Column(String, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     account_id = Column(String, ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
     credit_card_id = Column(String, ForeignKey("credit_cards.id", ondelete="SET NULL"), nullable=True)
@@ -137,10 +139,6 @@ class FixedTransaction(Base):
         CheckConstraint(
             "day_of_month >= 1 AND day_of_month <= 31",
             name="check_fixed_transaction_day"
-        ),
-        CheckConstraint(
-            "(type = 'income') OR (type = 'expense' AND (account_id IS NOT NULL OR credit_card_id IS NOT NULL))",
-            name="check_fixed_expense_source"
         ),
     )
     

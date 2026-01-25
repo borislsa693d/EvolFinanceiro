@@ -3,11 +3,12 @@ import { Transaction, CreditCard as CreditCardType, Account } from '../../lib/ap
 
 interface StatsCardsProps {
   transactions: Transaction[];
+  allTransactions: Transaction[];
   creditCards: CreditCardType[];
   accounts: Account[];
 }
 
-export default function StatsCards({ transactions, creditCards, accounts }: StatsCardsProps) {
+export default function StatsCards({ transactions, allTransactions, creditCards, accounts }: StatsCardsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -33,7 +34,13 @@ export default function StatsCards({ transactions, creditCards, accounts }: Stat
 
   // Saldo = Saldos iniciais das contas + Entradas - Saídas de conta bancária (SEM incluir cartão)
   const initialBalance = accounts.reduce((sum, account) => sum + Number(account.initial_balance || 0), 0);
-  const balance = initialBalance + income - expensesWithAccount;
+  const allIncome = allTransactions
+    .filter((t) => t.type === 'income')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const allExpensesWithAccount = allTransactions
+    .filter((t) => t.type === 'expense' && t.account_id && !t.credit_card_id)
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const balance = initialBalance + allIncome - allExpensesWithAccount;
 
   // Calcular fatura do cartão baseado em closing_day
   const calculateCardInvoice = () => {

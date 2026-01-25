@@ -152,6 +152,8 @@ class FixedTransactionCreate(BaseModel):
     description: str
     amount: Decimal = Field(..., decimal_places=2)
     day_of_month: int = Field(..., ge=1, le=31)  # Dia do mês (1-31)
+    start_date: Optional[str] = None  # YYYY-MM-DD (inclusive)
+    end_date: Optional[str] = None  # YYYY-MM-DD (inclusive)
     category_id: Optional[str] = None
     account_id: Optional[str] = None
     credit_card_id: Optional[str] = None
@@ -161,6 +163,8 @@ class FixedTransactionUpdate(BaseModel):
     description: Optional[str] = None
     amount: Optional[Decimal] = None
     day_of_month: Optional[int] = Field(None, ge=1, le=31)
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     category_id: Optional[str] = None
     account_id: Optional[str] = None
     credit_card_id: Optional[str] = None
@@ -172,6 +176,8 @@ class FixedTransactionResponse(BaseModel):
     description: str
     amount: Decimal
     day_of_month: int
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     category_id: Optional[str]
     account_id: Optional[str]
     credit_card_id: Optional[str]

@@ -77,7 +77,7 @@ export default function ExpensesByCategory({
   if (categoryExpenses.length === 0) {
     return (
       <div className="chart-card">
-        <h3 className="chart-title">Gastos por Categoria</h3>
+        <h3 className="chart-title">Despesas por Categoria</h3>
         <div className="empty-state">
           <PieChart className="empty-state-icon" />
           <div className="empty-state-text">Nenhuma despesa registrada</div>
@@ -92,7 +92,7 @@ export default function ExpensesByCategory({
   let currentAngle = 0;
   const slices = categoryExpenses.map((cat, index) => {
     const angle = (cat.percentage / 100) * 360;
-    const color = getCategoryColor(cat.id, cat.color, cat.name, index);
+    const color = getCategoryColor(cat.id, cat.color, cat.name, index, cat.type);
     
     const slice = {
       ...cat,
@@ -108,6 +108,7 @@ export default function ExpensesByCategory({
     const centerX = 175;
     const centerY = 175;
     const radius = 140;
+    const innerRadius = 95;
 
     const startRad = (startAngle - 90) * (Math.PI / 180);
     const endRad = (endAngle - 90) * (Math.PI / 180);
@@ -117,9 +118,14 @@ export default function ExpensesByCategory({
     const x2 = centerX + radius * Math.cos(endRad);
     const y2 = centerY + radius * Math.sin(endRad);
 
+    const x3 = centerX + innerRadius * Math.cos(endRad);
+    const y3 = centerY + innerRadius * Math.sin(endRad);
+    const x4 = centerX + innerRadius * Math.cos(startRad);
+    const y4 = centerY + innerRadius * Math.sin(startRad);
+
     const largeArc = endAngle - startAngle > 180 ? 1 : 0;
 
-    return `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x4} ${y4} Z`;
   };
 
   const getSliceTooltipPosition = (startAngle: number, endAngle: number) => {
@@ -138,12 +144,47 @@ export default function ExpensesByCategory({
 
   return (
     <div className="chart-card">
-      <h3 className="chart-title">Gastos por Categoria</h3>
+      <h3 className="chart-title">Despesas por Categoria</h3>
       <div className="chart-container">
         <div className="pie-chart legend-bottom compact-legend">
-          <div className="pie-visual pie-visual-hover">
+          <div className="pie-visual pie-visual-hover donut">
             <svg width="350" height="350" viewBox="0 0 350 350">
-              {slices.map((slice, index) => (
+              {slices.length === 1 ? (() => {
+                const slice = slices[0];
+                const radius = 140;
+                const innerRadius = 95;
+                const ringRadius = (radius + innerRadius) / 2;
+                const ringWidth = radius - innerRadius;
+                return (
+                  <circle
+                    cx="175"
+                    cy="175"
+                    r={ringRadius}
+                    fill="none"
+                    stroke={slice.color}
+                    strokeWidth={ringWidth}
+                    className={`pie-slice ${hoveredId === slice.id ? 'is-hovered' : ''}`}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '0.85';
+                      e.currentTarget.style.filter = 'brightness(1.1)';
+                      setHoveredId(slice.id);
+                      setTooltip({
+                        xPercent: 50,
+                        yPercent: 22,
+                        name: slice.name,
+                        amount: slice.amount,
+                        percentage: slice.percentage,
+                      });
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                      e.currentTarget.style.filter = 'brightness(1)';
+                      setHoveredId(null);
+                      setTooltip(null);
+                    }}
+                  />
+                );
+              })() : slices.map((slice, index) => (
                 <path
                   key={index}
                   d={createSlicePath(slice.startAngle, slice.endAngle)}
@@ -173,6 +214,10 @@ export default function ExpensesByCategory({
                 />
               ))}
             </svg>
+            <div className="pie-center">
+            <div className="pie-center-label">Despesas</div>
+              <div className="pie-center-value">{formatCurrency(totalExpenses)}</div>
+            </div>
             {tooltip && (
               <div
                 className="pie-tooltip"
@@ -187,7 +232,7 @@ export default function ExpensesByCategory({
 
           <div className="pie-legend">
             {categoryExpenses.map((cat, index) => {
-              const color = getCategoryColor(cat.id, cat.color, cat.name, index);
+              const color = getCategoryColor(cat.id, cat.color, cat.name, index, cat.type);
               
               return (
                 <div

@@ -65,43 +65,52 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
 
   return (
     <div className="chart-card">
-      <h3 className="chart-title">Gráfico de Evolução em Coluna (Mensal)</h3>
+      <h3 className="chart-title">Evolução Patrimonial</h3>
       <div className="chart-container">
         <div className="column-chart-evolution">
-          {monthsData.map((monthData, index) => (
-            <div key={index} className="chart-column-evolution">
-              <div className="column-bars-evolution">
-                <div className="bar-group">
-                  <div
-                    className="column-bar income"
-                    style={{ height: `${getBarHeight(monthData.income)}%` }}
-                    title={`Entrada: ${formatCurrency(monthData.income)}`}
-                  >
-                    <span className="bar-value">{formatCurrency(monthData.income)}</span>
+          {monthsData.map((monthData, index) => {
+            const hasData = monthData.income > 0 || monthData.expense > 0 || monthData.balance !== 0;
+            return (
+              <div key={index} className="chart-column-evolution">
+                {hasData ? (
+                  <div className="column-bars-evolution">
+                    <div className="bar-group">
+                      <div
+                        className="column-bar income"
+                        style={{ height: `${getBarHeight(monthData.income)}%` }}
+                        title={`Entrada: ${formatCurrency(monthData.income)}`}
+                      >
+                        <span className="bar-value">{formatCurrency(monthData.income)}</span>
+                      </div>
+                    </div>
+                    <div className="bar-group">
+                      <div
+                        className="column-bar expense"
+                        style={{ height: `${getBarHeight(monthData.expense)}%` }}
+                        title={`Saída: ${formatCurrency(monthData.expense)}`}
+                      >
+                        <span className="bar-value">{formatCurrency(monthData.expense)}</span>
+                      </div>
+                    </div>
+                    <div className="bar-group">
+                      <div
+                        className="column-bar balance"
+                        style={{ height: `${getBarHeight(Math.abs(monthData.balance))}%` }}
+                        title={`Saldo: ${formatCurrency(monthData.balance)}`}
+                      >
+                        <span className="bar-value">{formatCurrency(monthData.balance)}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="bar-group">
-                  <div
-                    className="column-bar expense"
-                    style={{ height: `${getBarHeight(monthData.expense)}%` }}
-                    title={`Saída: ${formatCurrency(monthData.expense)}`}
-                  >
-                    <span className="bar-value">{formatCurrency(monthData.expense)}</span>
+                ) : (
+                  <div className="column-bars-evolution empty">
+                    <div className="zero-value">R$ 0,00</div>
                   </div>
-                </div>
-                <div className="bar-group">
-                  <div
-                    className="column-bar balance"
-                    style={{ height: `${getBarHeight(Math.abs(monthData.balance))}%` }}
-                    title={`Saldo: ${formatCurrency(monthData.balance)}`}
-                  >
-                    <span className="bar-value">{formatCurrency(monthData.balance)}</span>
-                  </div>
-                </div>
+                )}
+                <div className="column-label">{monthData.label}</div>
               </div>
-              <div className="column-label">{monthData.label}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="chart-legend-bottom">

@@ -1,5 +1,4 @@
 import { Transaction } from '../../lib/api';
-import { BarChart3 } from 'lucide-react';
 
 interface WealthEvolutionProps {
   transactions: Transaction[];
@@ -53,69 +52,63 @@ export default function WealthEvolution({ transactions }: WealthEvolutionProps) 
 
   const getBarHeight = (value: number) => {
     if (maxValue === 0) return 20;
-    return Math.max((value / maxValue) * 90, 5);
+    return Math.max((value / maxValue) * 85, 5);
   };
 
-  if (transactions.length === 0) {
-    return (
-      <div className="chart-card">
-        <h3 className="chart-title">Evolução de Patrimônio</h3>
-        <div className="empty-state">
-          <BarChart3 className="empty-state-icon" />
-          <div className="empty-state-text">Nenhuma transação registrada</div>
-          <div className="empty-state-subtext">
-            Adicione transações para visualizar a evolução
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="chart-card">
+    <div className="chart-card chart-card-wealth">
       <h3 className="chart-title">Evolução de Patrimônio</h3>
       <div className="chart-container">
         <div className="column-chart">
-          {data.map((monthData, index) => (
-            <div key={index} className="chart-column">
-              <div className="column-bars">
-                <div
-                  className="column-bar income"
-                  style={{ height: `${getBarHeight(monthData.income)}%` }}
-                >
-                  <span className="bar-value">{formatCurrency(monthData.income)}</span>
-                </div>
-                <div
-                  className="column-bar expense"
-                  style={{ height: `${getBarHeight(monthData.expenses)}%` }}
-                >
-                  <span className="bar-value">{formatCurrency(monthData.expenses)}</span>
-                </div>
-                <div
-                  className="column-bar balance"
-                  style={{ height: `${getBarHeight(Math.abs(monthData.balance))}%` }}
-                >
-                  <span className="bar-value">{formatCurrency(monthData.balance)}</span>
-                </div>
+          {data.map((monthData, index) => {
+            const hasData = monthData.income > 0 || monthData.expenses > 0 || monthData.balance !== 0;
+            return (
+              <div key={index} className="chart-column">
+                {hasData ? (
+                  <div className="column-bars">
+                    <div
+                      className="column-bar income"
+                      style={{ height: `${getBarHeight(monthData.income)}%` }}
+                    >
+                      <span className="bar-value">{formatCurrency(monthData.income)}</span>
+                    </div>
+                    <div
+                      className="column-bar expense"
+                      style={{ height: `${getBarHeight(monthData.expenses)}%` }}
+                    >
+                      <span className="bar-value">{formatCurrency(monthData.expenses)}</span>
+                    </div>
+                    <div
+                      className="column-bar balance"
+                      style={{ height: `${getBarHeight(Math.abs(monthData.balance))}%` }}
+                    >
+                      <span className="bar-value">{formatCurrency(monthData.balance)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="column-bars empty">
+                    <div className="zero-value">R$ 0,00</div>
+                  </div>
+                )}
+                <div className="column-label">{monthNames[index]}</div>
               </div>
-              <div className="column-label">{monthNames[index]}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="chart-legend-bottom">
           <div className="legend-bottom-item">
-            <div className="legend-bottom-color" style={{ background: '#ffffff' }} />
+            <div className="legend-bottom-color" style={{ background: '#22c55e' }} />
             <span>Entrada</span>
           </div>
           <div className="legend-bottom-item">
-            <div className="legend-bottom-color" style={{ background: '#666666' }} />
+            <div className="legend-bottom-color" style={{ background: '#ef4444' }} />
             <span>Saída</span>
           </div>
           <div className="legend-bottom-item">
             <div
               className="legend-bottom-color"
-              style={{ background: 'linear-gradient(to right, #ffffff, #888888)' }}
+              style={{ background: 'linear-gradient(to top, #666666, #999999)' }}
             />
             <span>Saldo</span>
           </div>

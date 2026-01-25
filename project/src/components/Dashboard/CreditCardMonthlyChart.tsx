@@ -102,7 +102,7 @@ export default function CreditCardMonthlyChart({ transactions, creditCards }: Cr
   if (transactions.length === 0 && creditCards.length === 0) {
     return (
       <div className="chart-card">
-        <h3 className="chart-title">Gráfico de Cartão em Coluna (Mensal)</h3>
+        <h3 className="chart-title">Fatura do Cartão</h3>
         <div className="empty-state">
           <CreditCardIcon className="empty-state-icon" />
           <div className="empty-state-text">Nenhuma transação registrada</div>
@@ -116,26 +116,34 @@ export default function CreditCardMonthlyChart({ transactions, creditCards }: Cr
 
   return (
     <div className="chart-card">
-      <h3 className="chart-title">Gráfico de Cartão em Coluna (Mensal)</h3>
+      <h3 className="chart-title">Fatura do Cartão</h3>
       <div className="chart-container">
         <div className="column-chart-credit">
-          {monthsData.map((monthData, index) => (
-            <div key={index} className="chart-column-credit">
-              <div className="column-bar-credit-container">
-                <div
-                  className="column-bar credit-card"
-                  style={{ height: `${getBarHeight(monthData.expense)}%` }}
-                  title={`Fatura: ${formatCurrency(monthData.expense)}`}
-                >
-                  <span className="bar-value">{formatCurrency(monthData.expense)}</span>
-                </div>
+          {monthsData.map((monthData, index) => {
+            const hasData = monthData.expense > 0;
+            return (
+              <div key={index} className="chart-column-credit">
+                {hasData ? (
+                  <div className="column-bar-credit-container">
+                    <div
+                      className="column-bar credit-card"
+                      style={{ height: `${getBarHeight(monthData.expense)}%` }}
+                      title={`Fatura: ${formatCurrency(monthData.expense)}`}
+                    >
+                      <span className="bar-value">{formatCurrency(monthData.expense)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="column-bar-credit-container empty">
+                    <div className="zero-value">R$ 0,00</div>
+                  </div>
+                )}
+                <div className="column-label">{monthData.label}</div>
               </div>
-              <div className="column-label">{monthData.label}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
-

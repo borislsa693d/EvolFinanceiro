@@ -8,6 +8,7 @@ from database import get_db
 import models
 import schemas
 from auth import get_current_user
+from datetime import datetime
 
 router = APIRouter(prefix="/fixed-transactions", tags=["Fixed Transactions"])
 
@@ -39,6 +40,8 @@ async def get_fixed_transactions(
             "description": ft.description,
             "amount": ft.amount,
             "day_of_month": ft.day_of_month,
+            "start_date": ft.start_date.strftime("%Y-%m-%d") if ft.start_date else None,
+            "end_date": ft.end_date.strftime("%Y-%m-%d") if ft.end_date else None,
             "category_id": ft.category_id,
             "account_id": ft.account_id,
             "credit_card_id": ft.credit_card_id,
@@ -72,6 +75,8 @@ async def get_fixed_transaction(
         "description": fixed_transaction.description,
         "amount": fixed_transaction.amount,
         "day_of_month": fixed_transaction.day_of_month,
+        "start_date": fixed_transaction.start_date.strftime("%Y-%m-%d") if fixed_transaction.start_date else None,
+        "end_date": fixed_transaction.end_date.strftime("%Y-%m-%d") if fixed_transaction.end_date else None,
         "category_id": fixed_transaction.category_id,
         "account_id": fixed_transaction.account_id,
         "credit_card_id": fixed_transaction.credit_card_id,
@@ -85,14 +90,6 @@ async def create_fixed_transaction(
     db: Session = Depends(get_db)
 ):
     """Criar uma nova receita/despesa fixa"""
-    # Validar que expense tem account_id ou credit_card_id
-    if fixed_data.type == 'expense':
-        if not fixed_data.account_id and not fixed_data.credit_card_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Despesa fixa deve ter account_id ou credit_card_id"
-            )
-    
     # Validar dia do mês
     if fixed_data.day_of_month < 1 or fixed_data.day_of_month > 31:
         raise HTTPException(
@@ -100,12 +97,34 @@ async def create_fixed_transaction(
             detail="Dia do mês deve ser entre 1 e 31"
         )
     
+    start_date = None
+    if fixed_data.start_date:
+        try:
+            start_date = datetime.strptime(fixed_data.start_date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="start_date deve estar no formato YYYY-MM-DD"
+            )
+
+    end_date = None
+    if fixed_data.end_date:
+        try:
+            end_date = datetime.strptime(fixed_data.end_date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="end_date deve estar no formato YYYY-MM-DD"
+            )
+
     new_fixed = models.FixedTransaction(
         user_id=current_user.id,
         type=fixed_data.type,
         description=fixed_data.description,
         amount=fixed_data.amount,
         day_of_month=fixed_data.day_of_month,
+        start_date=start_date,
+        end_date=end_date,
         category_id=fixed_data.category_id,
         account_id=fixed_data.account_id,
         credit_card_id=fixed_data.credit_card_id
@@ -122,6 +141,8 @@ async def create_fixed_transaction(
         "description": new_fixed.description,
         "amount": new_fixed.amount,
         "day_of_month": new_fixed.day_of_month,
+        "start_date": new_fixed.start_date.strftime("%Y-%m-%d") if new_fixed.start_date else None,
+        "end_date": new_fixed.end_date.strftime("%Y-%m-%d") if new_fixed.end_date else None,
         "category_id": new_fixed.category_id,
         "account_id": new_fixed.account_id,
         "credit_card_id": new_fixed.credit_card_id,
@@ -147,15 +168,8 @@ async def update_fixed_transaction(
             detail="Receita/Despesa fixa não encontrada"
         )
     
-    # Validar se está tentando mudar tipo para expense sem account/credit_card
     if fixed_data.type is not None:
         fixed_transaction.type = fixed_data.type
-        if fixed_data.type == 'expense':
-            if not fixed_data.account_id and not fixed_data.credit_card_id and not fixed_transaction.account_id and not fixed_transaction.credit_card_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Despesa fixa deve ter account_id ou credit_card_id"
-                )
     
     if fixed_data.description is not None:
         fixed_transaction.description = fixed_data.description
@@ -168,6 +182,28 @@ async def update_fixed_transaction(
                 detail="Dia do mês deve ser entre 1 e 31"
             )
         fixed_transaction.day_of_month = fixed_data.day_of_month
+    if fixed_data.start_date is not None:
+        if fixed_data.start_date == "":
+            fixed_transaction.start_date = None
+        else:
+            try:
+                fixed_transaction.start_date = datetime.strptime(fixed_data.start_date, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="start_date deve estar no formato YYYY-MM-DD"
+                )
+    if fixed_data.end_date is not None:
+        if fixed_data.end_date == "":
+            fixed_transaction.end_date = None
+        else:
+            try:
+                fixed_transaction.end_date = datetime.strptime(fixed_data.end_date, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="end_date deve estar no formato YYYY-MM-DD"
+                )
     if fixed_data.category_id is not None:
         fixed_transaction.category_id = fixed_data.category_id
     if fixed_data.account_id is not None:
@@ -185,6 +221,8 @@ async def update_fixed_transaction(
         "description": fixed_transaction.description,
         "amount": fixed_transaction.amount,
         "day_of_month": fixed_transaction.day_of_month,
+        "start_date": fixed_transaction.start_date.strftime("%Y-%m-%d") if fixed_transaction.start_date else None,
+        "end_date": fixed_transaction.end_date.strftime("%Y-%m-%d") if fixed_transaction.end_date else None,
         "category_id": fixed_transaction.category_id,
         "account_id": fixed_transaction.account_id,
         "credit_card_id": fixed_transaction.credit_card_id,
@@ -213,4 +251,3 @@ async def delete_fixed_transaction(
     db.commit()
     
     return None
-
