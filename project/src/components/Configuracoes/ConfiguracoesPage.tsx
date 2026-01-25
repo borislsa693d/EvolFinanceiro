@@ -40,3 +40,4 @@ const ConfiguracoesPage = () => {
 export default ConfiguracoesPage;
 
 
+

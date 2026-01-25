@@ -99,6 +99,25 @@ export default function PrevisaoPage() {
     return new Date(year, month, 0).getDate();
   };
 
+  const getInvoiceMonthYear = (transactionDate: Date, closingDay: number) => {
+    const transDay = transactionDate.getDate();
+    const transMonth = transactionDate.getMonth() + 1;
+    const transYear = transactionDate.getFullYear();
+
+    let invoiceMonth = transMonth;
+    let invoiceYear = transYear;
+
+    if (transDay > closingDay) {
+      invoiceMonth = transMonth + 1;
+      if (invoiceMonth > 12) {
+        invoiceMonth = 1;
+        invoiceYear = transYear + 1;
+      }
+    }
+
+    return { invoiceMonth, invoiceYear };
+  };
+
   // Função auxiliar para calcular saldo final de um mês específico (usado para calcular saldo inicial do próximo mês)
   const calculateMonthEndBalance = (month: number, year: number): number => {
     const daysInMonth = getDaysInMonth(month, year);
@@ -146,43 +165,11 @@ export default function PrevisaoPage() {
       }
     });
     
-    // Faturas que venceram neste mês (mesma lógica do dashboard)
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const currentDay = now.getDate();
-    
+    // Faturas que vencem neste mês
     creditCards.forEach((card) => {
       if (!card.due_day || !card.closing_day) return;
       
-      const dueDay = card.due_day;
       const closingDay = card.closing_day;
-      let targetDueDay = dueDay;
-      if (targetDueDay > daysInMonth) {
-        targetDueDay = daysInMonth;
-      }
-      
-      // A fatura que vence neste mês foi fechada no mês anterior
-      let invoiceClosingMonth = month - 1;
-      let invoiceClosingYear = year;
-      if (invoiceClosingMonth < 1) {
-        invoiceClosingMonth = 12;
-        invoiceClosingYear = year - 1;
-      }
-      
-      // Verificar se a fatura venceu até o final deste mês
-      const invoiceDueDate = new Date(year, month - 1, targetDueDay);
-      const isPastMonth = (year < currentYear) || (year === currentYear && month < currentMonth);
-      const isCalculatedMonth = year === currentYear && month === currentMonth;
-      
-      // Se é mês passado, sempre incluir (fatura já venceu)
-      // Se é mês atual, verificar se já venceu (currentDay >= dueDay)
-      // Se é mês futuro, não incluir (ainda não venceu)
-      const shouldInclude = isPastMonth || (isCalculatedMonth && currentDay >= targetDueDay);
-      
-      if (!shouldInclude) {
-        return; // Pula este cartão
-      }
       
       const cardTransactions = transactions.filter(
         (t) => t.credit_card_id === card.id && t.type === 'expense'
@@ -191,22 +178,9 @@ export default function PrevisaoPage() {
       let invoiceAmount = 0;
       cardTransactions.forEach((transaction) => {
         const transDate = new Date(transaction.date + 'T00:00:00');
-        const transDay = transDate.getDate();
-        const transMonth = transDate.getMonth() + 1;
-        const transYear = transDate.getFullYear();
+        const { invoiceMonth, invoiceYear } = getInvoiceMonthYear(transDate, closingDay);
         
-        let transactionInvoiceMonth = transMonth;
-        let transactionInvoiceYear = transYear;
-        
-        if (transDay > closingDay) {
-          transactionInvoiceMonth = transMonth + 1;
-          if (transactionInvoiceMonth > 12) {
-            transactionInvoiceMonth = 1;
-            transactionInvoiceYear = transYear + 1;
-          }
-        }
-        
-        if (transactionInvoiceYear === invoiceClosingYear && transactionInvoiceMonth === invoiceClosingMonth) {
+        if (invoiceYear === year && invoiceMonth === month) {
           invoiceAmount += Number(transaction.amount);
         }
       });
@@ -283,11 +257,6 @@ export default function PrevisaoPage() {
     });
 
     // Adicionar faturas de cartão de crédito no dia de vencimento
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const currentDay = now.getDate();
-
     creditCards.forEach((card) => {
       if (!card.due_day) {
         // Se não tem due_day definido, não podemos calcular quando vence
@@ -314,82 +283,13 @@ export default function PrevisaoPage() {
         (t) => t.credit_card_id === card.id && t.type === 'expense'
       );
 
-      // Usar EXATAMENTE a mesma lógica do dashboard (calculateCardInvoice)
-      // No dashboard, a fatura atual é aquela que ainda tem que pagar este mês
+      // Calcular o total da fatura que vence no mês selecionado
       let cardInvoice = 0;
-      const isCurrentMonth = selectedYear === currentYear && selectedMonth === currentMonth;
-      
-      // Para o mês atual: usar exatamente a mesma lógica do dashboard
-      // Para meses passados/futuros: calcular qual fatura vence naquele mês
-      
-      let invoiceMonthToCalculate: number;
-      let invoiceYearToCalculate: number;
-      let shouldShowInThisMonth = false;
-      
-      if (isCurrentMonth) {
-        // Mês atual: usar mesma lógica do dashboard
-        // Determinar qual é a fatura atual baseado no closing_day
-        invoiceMonthToCalculate = currentMonth;
-        invoiceYearToCalculate = currentYear;
-        
-        if (currentDay < closingDay) {
-          // Ainda não passou o dia de fechamento deste mês
-          // A fatura atual é do mês anterior (que já fechou) e vence neste mês
-          invoiceMonthToCalculate = currentMonth - 1;
-          if (invoiceMonthToCalculate < 1) {
-            invoiceMonthToCalculate = 12;
-            invoiceYearToCalculate = currentYear - 1;
-          }
-          // Esta fatura vence no mês atual → mostrar no mês atual
-          shouldShowInThisMonth = true;
-        } else {
-          // Já passou o dia de fechamento deste mês
-          // A fatura atual é deste mês (que já fechou)
-          // Esta fatura vence no próximo mês, então não aparece no mês atual
-          // Mas para o cálculo de saldo, não devemos incluir aqui
-          shouldShowInThisMonth = false;
-          return; // Pula este cartão - fatura vence no próximo mês
-        }
-      } else {
-        // Mês passado ou futuro: calcular qual fatura vence no mês selecionado
-        // A fatura que vence no mês selecionado foi fechada no mês anterior
-        invoiceMonthToCalculate = selectedMonth - 1;
-        invoiceYearToCalculate = selectedYear;
-        if (invoiceMonthToCalculate < 1) {
-          invoiceMonthToCalculate = 12;
-          invoiceYearToCalculate = selectedYear - 1;
-        }
-        shouldShowInThisMonth = true;
-      }
-      
-      // Se não deve aparecer no mês atual, pular
-      if (!shouldShowInThisMonth) {
-        return; // Pula este cartão
-      }
-
-      // Calcular o total da fatura usando a mesma lógica do dashboard
       cardTransactions.forEach((transaction) => {
         const transDate = new Date(transaction.date + 'T00:00:00');
-        const transDay = transDate.getDate();
-        const transMonth = transDate.getMonth() + 1;
-        const transYear = transDate.getFullYear();
+        const { invoiceMonth, invoiceYear } = getInvoiceMonthYear(transDate, closingDay);
 
-        // Determinar a qual fatura pertence a transação (mesma lógica do dashboard)
-        let invoiceMonth = transMonth;
-        let invoiceYear = transYear;
-
-        if (transDay > closingDay) {
-          // Compra após o fechamento: vai para fatura do próximo mês
-          invoiceMonth = transMonth + 1;
-          if (invoiceMonth > 12) {
-            invoiceMonth = 1;
-            invoiceYear = transYear + 1;
-          }
-        }
-        // Se transDay <= closingDay, a transação vai para a fatura do mês da transação
-
-        // Verificar se esta transação pertence à fatura que estamos calculando
-        if (invoiceYear === invoiceYearToCalculate && invoiceMonth === invoiceMonthToCalculate) {
+        if (invoiceYear === selectedYear && invoiceMonth === selectedMonth) {
           cardInvoice += Number(transaction.amount);
         }
       });

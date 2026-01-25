@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Transaction, Category } from '../../lib/api';
 import { PieChart } from 'lucide-react';
 import { getCategoryColor } from '../../lib/chartColors';
@@ -11,6 +12,14 @@ export default function ExpensesByCategory({
   transactions,
   categories,
 }: ExpensesByCategoryProps) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    xPercent: number;
+    yPercent: number;
+    name: string;
+    amount: number;
+    percentage: number;
+  } | null>(null);
   const expenses = transactions.filter((t) => t.type === 'expense');
   const totalExpenses = expenses.reduce((sum, t) => sum + Number(t.amount), 0);
 
@@ -113,12 +122,26 @@ export default function ExpensesByCategory({
     return `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
   };
 
+  const getSliceTooltipPosition = (startAngle: number, endAngle: number) => {
+    const centerX = 175;
+    const centerY = 175;
+    const radius = 110;
+    const midAngle = (startAngle + endAngle) / 2 - 90;
+    const rad = (midAngle * Math.PI) / 180;
+    const x = centerX + radius * Math.cos(rad);
+    const y = centerY + radius * Math.sin(rad);
+    return {
+      xPercent: (x / 350) * 100,
+      yPercent: (y / 350) * 100,
+    };
+  };
+
   return (
     <div className="chart-card">
       <h3 className="chart-title">Gastos por Categoria</h3>
       <div className="chart-container">
-        <div className="pie-chart">
-          <div className="pie-visual">
+        <div className="pie-chart legend-bottom compact-legend">
+          <div className="pie-visual pie-visual-hover">
             <svg width="350" height="350" viewBox="0 0 350 350">
               {slices.map((slice, index) => (
                 <path
@@ -127,18 +150,39 @@ export default function ExpensesByCategory({
                   fill={slice.color}
                   stroke="#000000"
                   strokeWidth="3"
-                  style={{ transition: 'all 0.3s', cursor: 'pointer' }}
+                  className={`pie-slice ${hoveredId === slice.id ? 'is-hovered' : ''}`}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.opacity = '0.85';
                     e.currentTarget.style.filter = 'brightness(1.1)';
+                    setHoveredId(slice.id);
+                    const pos = getSliceTooltipPosition(slice.startAngle, slice.endAngle);
+                    setTooltip({
+                      xPercent: pos.xPercent,
+                      yPercent: pos.yPercent,
+                      name: slice.name,
+                      amount: slice.amount,
+                      percentage: slice.percentage,
+                    });
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.opacity = '1';
                     e.currentTarget.style.filter = 'brightness(1)';
+                    setHoveredId(null);
+                    setTooltip(null);
                   }}
                 />
               ))}
             </svg>
+            {tooltip && (
+              <div
+                className="pie-tooltip"
+                style={{ left: `${tooltip.xPercent}%`, top: `${tooltip.yPercent}%` }}
+              >
+                <div className="pie-tooltip-title">{tooltip.name}</div>
+                <div className="pie-tooltip-value">{formatCurrency(tooltip.amount)}</div>
+                <div className="pie-tooltip-percent">{tooltip.percentage.toFixed(1)}%</div>
+              </div>
+            )}
           </div>
 
           <div className="pie-legend">
@@ -146,7 +190,12 @@ export default function ExpensesByCategory({
               const color = getCategoryColor(cat.id, cat.color, cat.name, index);
               
               return (
-                <div key={cat.id} className="legend-item">
+                <div
+                  key={cat.id}
+                  className="legend-item"
+                  onMouseEnter={() => setHoveredId(cat.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                >
                   <div className="legend-label">
                     <div
                       className="legend-color"
@@ -155,7 +204,6 @@ export default function ExpensesByCategory({
                     <span className="legend-name">{cat.name}</span>
                   </div>
                   <div className="legend-value">
-                    <span className="legend-amount">{formatCurrency(cat.amount)}</span>
                     <span className="legend-percentage">{cat.percentage.toFixed(1)}%</span>
                   </div>
                 </div>

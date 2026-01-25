@@ -242,3 +242,4 @@ Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull re
 **Desenvolvido com ❤️ usando React, FastAPI e SQLite com WAL**
 
 
+

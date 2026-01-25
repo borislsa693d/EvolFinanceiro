@@ -88,3 +88,4 @@ Deveria retornar: `{"status": "ok", "database": "SQLite with WAL"}`
    - Verifique se a URL da API está correta (deve ser `http://172.20.10.2:8000`)
 
 
+

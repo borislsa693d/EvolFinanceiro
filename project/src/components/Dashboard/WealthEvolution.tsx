@@ -53,7 +53,7 @@ export default function WealthEvolution({ transactions }: WealthEvolutionProps) 
 
   const getBarHeight = (value: number) => {
     if (maxValue === 0) return 20;
-    return Math.max((value / maxValue) * 100, 5);
+    return Math.max((value / maxValue) * 90, 5);
   };
 
   if (transactions.length === 0) {

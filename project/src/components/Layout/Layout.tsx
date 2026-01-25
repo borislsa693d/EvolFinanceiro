@@ -26,19 +26,19 @@ const useIsMobile = (breakpoint = 1024) => {
 };
 
 const Layout = ({ children }: LayoutProps) => {
-  const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isNavExpanded, setIsNavExpanded] = useState(true);
   const { user } = useAuth();
   const isMobile = useIsMobile();
 
   const toggleNav = () => {
-    if (!isMobile) { // Only allow sidebar toggle on desktop
-      setIsNavOpen(!isNavOpen);
+    if (!isMobile) {
+      setIsNavExpanded(!isNavExpanded);
     }
   };
 
   return (
     <div className="layout">
-      {!isMobile && <NavBoard isOpen={isNavOpen} onClose={toggleNav} />}
+      {!isMobile && <NavBoard isExpanded={isNavExpanded} onToggle={toggleNav} />}
       
       <main className="main-content" style={{ paddingBottom: isMobile ? '80px' : '0' }}>
         {!isMobile && (
@@ -50,8 +50,6 @@ const Layout = ({ children }: LayoutProps) => {
       </main>
 
       {isMobile && <BottomNavBar />}
-
-      {isNavOpen && !isMobile && <div className="overlay" onClick={toggleNav}></div>}
 
     </div>
   );

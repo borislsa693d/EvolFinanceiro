@@ -1,5 +1,4 @@
 import { Transaction } from '../../lib/api';
-import { BarChart3 } from 'lucide-react';
 
 interface MonthlyEvolutionChartProps {
   transactions: Transaction[];
@@ -15,17 +14,16 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
     }).format(value);
   };
 
-  // Obter últimos 6 meses
+  // Obter dados de janeiro a dezembro do ano atual
   const getMonthsData = () => {
     const months = [];
     const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const monthName = monthNames[date.getMonth()];
+    const year = new Date().getFullYear();
+
+    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+      const month = monthIndex + 1;
+      const monthName = monthNames[monthIndex];
       
       const monthTransactions = transactions.filter((t) => {
         const tDate = new Date(t.date);
@@ -43,11 +41,11 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
       const balance = income - expense;
       
       months.push({
-        label: `${monthName}/${year.toString().slice(-2)}`,
+        label: `${monthName}/${year}`,
         income,
         expense,
         balance,
-        monthIndex: i,
+        monthIndex,
       });
     }
     
@@ -56,34 +54,14 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
 
   const monthsData = getMonthsData();
   
-  // Calcular média de gastos mensal
-  const totalExpenses = monthsData.reduce((sum, m) => sum + m.expense, 0);
-  const averageExpense = monthsData.length > 0 ? totalExpenses / monthsData.length : 0;
-
   const maxValue = Math.max(
-    ...monthsData.map((d) => Math.max(d.income, d.expense, Math.abs(d.balance), averageExpense)),
-    averageExpense
+    ...monthsData.map((d) => Math.max(d.income, d.expense, Math.abs(d.balance)))
   );
 
   const getBarHeight = (value: number) => {
     if (maxValue === 0) return 5;
     return Math.max((value / maxValue) * 100, 5);
   };
-
-  if (transactions.length === 0) {
-    return (
-      <div className="chart-card">
-        <h3 className="chart-title">Gráfico de Evolução em Coluna (Mensal)</h3>
-        <div className="empty-state">
-          <BarChart3 className="empty-state-icon" />
-          <div className="empty-state-text">Nenhuma transação registrada</div>
-          <div className="empty-state-subtext">
-            Adicione transações para visualizar a evolução
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="chart-card">
@@ -120,15 +98,6 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
                     <span className="bar-value">{formatCurrency(monthData.balance)}</span>
                   </div>
                 </div>
-                <div className="bar-group">
-                  <div
-                    className="column-bar average"
-                    style={{ height: `${getBarHeight(averageExpense)}%` }}
-                    title={`Média: ${formatCurrency(averageExpense)}`}
-                  >
-                    <span className="bar-value">{formatCurrency(averageExpense)}</span>
-                  </div>
-                </div>
               </div>
               <div className="column-label">{monthData.label}</div>
             </div>
@@ -137,24 +106,19 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
 
         <div className="chart-legend-bottom">
           <div className="legend-bottom-item">
-            <div className="legend-bottom-color" style={{ background: '#ffffff' }} />
+            <div className="legend-bottom-color" style={{ background: '#22c55e' }} />
             <span>Entrada</span>
           </div>
           <div className="legend-bottom-item">
-            <div className="legend-bottom-color" style={{ background: '#666666' }} />
+            <div className="legend-bottom-color" style={{ background: '#ef4444' }} />
             <span>Saída</span>
           </div>
           <div className="legend-bottom-item">
-            <div className="legend-bottom-color" style={{ background: 'linear-gradient(to top, #ffffff, #888888)' }} />
+            <div className="legend-bottom-color" style={{ background: 'linear-gradient(to top, #666666, #999999)' }} />
             <span>Saldo</span>
-          </div>
-          <div className="legend-bottom-item">
-            <div className="legend-bottom-color" style={{ background: '#999999' }} />
-            <span>Média de Gastos</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
