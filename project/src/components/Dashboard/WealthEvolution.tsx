@@ -99,11 +99,11 @@ export default function WealthEvolution({ transactions }: WealthEvolutionProps) 
         <div className="chart-legend-bottom">
           <div className="legend-bottom-item">
             <div className="legend-bottom-color" style={{ background: '#22c55e' }} />
-            <span>Entrada</span>
+            <span>Receita</span>
           </div>
           <div className="legend-bottom-item">
             <div className="legend-bottom-color" style={{ background: '#ef4444' }} />
-            <span>Saída</span>
+            <span>Despesa</span>
           </div>
           <div className="legend-bottom-item">
             <div

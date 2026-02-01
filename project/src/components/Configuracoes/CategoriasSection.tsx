@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../Modal/Modal';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { categoriesAPI, type Category } from '../../lib/api';
 
 const CategoriasSection: React.FC = () => {
@@ -9,6 +9,8 @@ const CategoriasSection: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'all' | 'income' | 'expense'>('all');
 
   // Form state
   const [name, setName] = useState('');
@@ -102,8 +104,17 @@ const CategoriasSection: React.FC = () => {
     }
   };
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
   const incomeCategories = categories.filter(cat => cat.type === 'income');
   const expenseCategories = categories.filter(cat => cat.type === 'expense');
+
+  const matchesSearch = (cat: Category) => {
+    if (!normalizedSearch) return true;
+    return cat.name.toLowerCase().includes(normalizedSearch);
+  };
+
+  const filteredIncome = incomeCategories.filter(matchesSearch);
+  const filteredExpense = expenseCategories.filter(matchesSearch);
 
   if (loading) {
     return <div className="loading">Carregando...</div>;
@@ -112,37 +123,87 @@ const CategoriasSection: React.FC = () => {
   return (
     <div className="config-section">
       <div className="config-section-header">
-        <h3>Categorias</h3>
+        <div className="categories-header-left">
+          <h3>Categorias</h3>
+          <div className="categories-filters">
+            <div className="categories-view-toggle">
+              <button
+                className={`view-pill ${viewMode === 'all' ? 'active' : ''}`}
+                onClick={() => setViewMode('all')}
+                type="button"
+              >
+                Todas
+              </button>
+              <button
+                className={`view-pill income ${viewMode === 'income' ? 'active' : ''}`}
+                onClick={() => setViewMode('income')}
+                type="button"
+              >
+                Receitas
+              </button>
+              <button
+                className={`view-pill expense ${viewMode === 'expense' ? 'active' : ''}`}
+                onClick={() => setViewMode('expense')}
+                type="button"
+              >
+                Despesas
+              </button>
+            </div>
+            <div className="categories-search">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar categoria..."
+              />
+            </div>
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 
             className="add-button" 
             onClick={() => handleOpenModal(undefined, 'income')}
             style={{ background: '#10b981' }}
           >
-            <FaPlus /> Adicionar Entrada
+            <FaPlus /> Adicionar Receita
           </button>
           <button 
             className="add-button" 
             onClick={() => handleOpenModal(undefined, 'expense')}
             style={{ background: '#ef4444' }}
           >
-            <FaPlus /> Adicionar Saída
+            <FaPlus /> Adicionar Despesa
           </button>
         </div>
       </div>
 
       <div className="categories-container">
         {/* Categorias de Entrada */}
+        {viewMode !== 'expense' && (
         <div className="category-type-section">
           <h4 className="category-type-title income-title">
-            <span style={{ color: '#10b981' }}>✅</span> Entrada
+            <FaArrowUp className="category-type-icon" /> Receitas
+            <span className="category-count">{filteredIncome.length}</span>
           </h4>
-          {incomeCategories.length === 0 ? (
+          {filteredIncome.length === 0 ? (
             <div className="empty-state-small">Nenhuma categoria de entrada</div>
           ) : (
             <div className="categorias-list">
-              {incomeCategories.map(categoria => (
-                <div key={categoria.id} className="categoria-item" style={{ borderLeftColor: categoria.color }}>
+              {filteredIncome.map(categoria => (
+                <div
+                  key={categoria.id}
+                  className="categoria-item"
+                  style={{ borderLeftColor: categoria.color }}
+                  onClick={() => handleOpenModal(categoria)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleOpenModal(categoria);
+                    }
+                  }}
+                >
                   <div className="categoria-item-content">
                     <span 
                       className="categoria-color-indicator"
@@ -153,14 +214,20 @@ const CategoriasSection: React.FC = () => {
                   <div className="action-buttons">
                     <button
                       className="btn-edit"
-                      onClick={() => handleOpenModal(categoria)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenModal(categoria);
+                      }}
                       title="Editar"
                     >
                       <FaEdit />
                     </button>
                     <button
                       className="btn-delete"
-                      onClick={() => handleDelete(categoria.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(categoria.id);
+                      }}
                       title="Excluir"
                     >
                       <FaTrash />
@@ -171,18 +238,34 @@ const CategoriasSection: React.FC = () => {
             </div>
           )}
         </div>
+        )}
 
         {/* Categorias de Saída */}
+        {viewMode !== 'income' && (
         <div className="category-type-section">
           <h4 className="category-type-title expense-title">
-            <span style={{ color: '#ef4444' }}>❌</span> Saída
+            <FaArrowDown className="category-type-icon" /> Despesas
+            <span className="category-count">{filteredExpense.length}</span>
           </h4>
-          {expenseCategories.length === 0 ? (
+          {filteredExpense.length === 0 ? (
             <div className="empty-state-small">Nenhuma categoria de saída</div>
           ) : (
             <div className="categorias-list">
-              {expenseCategories.map(categoria => (
-                <div key={categoria.id} className="categoria-item" style={{ borderLeftColor: categoria.color }}>
+              {filteredExpense.map(categoria => (
+                <div
+                  key={categoria.id}
+                  className="categoria-item"
+                  style={{ borderLeftColor: categoria.color }}
+                  onClick={() => handleOpenModal(categoria)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleOpenModal(categoria);
+                    }
+                  }}
+                >
                   <div className="categoria-item-content">
                     <span 
                       className="categoria-color-indicator"
@@ -193,14 +276,20 @@ const CategoriasSection: React.FC = () => {
                   <div className="action-buttons">
                     <button
                       className="btn-edit"
-                      onClick={() => handleOpenModal(categoria)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenModal(categoria);
+                      }}
                       title="Editar"
                     >
                       <FaEdit />
                     </button>
                     <button
                       className="btn-delete"
-                      onClick={() => handleDelete(categoria.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(categoria.id);
+                      }}
                       title="Excluir"
                     >
                       <FaTrash />
@@ -211,6 +300,7 @@ const CategoriasSection: React.FC = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       <Modal 
@@ -227,8 +317,8 @@ const CategoriasSection: React.FC = () => {
               required
               disabled={isEditing} // Não permite mudar tipo ao editar
             >
-              <option value="expense">Saída</option>
-              <option value="income">Entrada</option>
+              <option value="expense">Despesa</option>
+              <option value="income">Receita</option>
             </select>
             {isEditing && (
               <small style={{ color: '#888', marginTop: '0.25rem', display: 'block' }}>

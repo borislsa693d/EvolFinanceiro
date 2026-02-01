@@ -13,7 +13,7 @@ const ContasSection: React.FC = () => {
   // Form state
   const [name, setName] = useState('');
   const [type, setType] = useState('');
-  const [initialBalance, setInitialBalance] = useState('0');
+  const [initialBalanceDigits, setInitialBalanceDigits] = useState('');
 
   useEffect(() => {
     loadAccounts();
@@ -37,13 +37,14 @@ const ContasSection: React.FC = () => {
       setEditingId(account.id);
       setName(account.name);
       setType(account.type || '');
-      setInitialBalance(account.initial_balance.toString());
+      const cents = Math.round(Number(account.initial_balance || 0) * 100);
+      setInitialBalanceDigits(cents > 0 ? String(cents) : '');
     } else {
       setIsEditing(false);
       setEditingId(null);
       setName('');
       setType('');
-      setInitialBalance('0');
+      setInitialBalanceDigits('');
     }
     setIsModalOpen(true);
   };
@@ -54,7 +55,7 @@ const ContasSection: React.FC = () => {
     setEditingId(null);
     setName('');
     setType('');
-    setInitialBalance('0');
+    setInitialBalanceDigits('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,13 +66,13 @@ const ContasSection: React.FC = () => {
         await accountsAPI.update(editingId, {
           name,
           type,
-          initial_balance: parseFloat(initialBalance),
+          initial_balance: initialBalanceDigits ? Number(initialBalanceDigits) / 100 : 0,
         });
       } else {
         await accountsAPI.create({
           name,
           type,
-          initial_balance: parseFloat(initialBalance),
+          initial_balance: initialBalanceDigits ? Number(initialBalanceDigits) / 100 : 0,
         });
       }
       
@@ -101,6 +102,36 @@ const ContasSection: React.FC = () => {
     return <div className="loading">Carregando...</div>;
   }
 
+  const formatCurrencyFromDigitsModal = (digits: string) => {
+    const normalized = digits ? digits : '0';
+    const value = Number(normalized) / 100;
+    const formatted = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+    return `R$ ${formatted}`;
+  };
+
+  const formatCurrencyFromDigitsTable = (digits: string) => {
+    const normalized = digits ? digits : '0';
+    const cents = normalized.padStart(2, '0');
+    const intPart = cents.length > 2 ? cents.slice(0, -2) : '0';
+    const fracPart = cents.slice(-2);
+    const intPadded = intPart.padStart(4, '0');
+    const intWithDots = intPadded.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `R$ ${intWithDots},${fracPart}`;
+  };
+
+  const formatCurrencyFromValue = (value: number) => {
+    const cents = Math.round(Number(value || 0) * 100);
+    return formatCurrencyFromDigitsTable(cents > 0 ? String(cents) : '0');
+  };
+
+  const handleInitialBalanceChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    setInitialBalanceDigits(digitsOnly);
+  };
+
   return (
     <div className="config-section">
       <div className="config-section-header">
@@ -128,7 +159,7 @@ const ContasSection: React.FC = () => {
                 <tr key={conta.id}>
                   <td>{conta.name}</td>
                   <td>{conta.type || '-'}</td>
-                  <td>{conta.initial_balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                  <td>{formatCurrencyFromValue(Number(conta.initial_balance))}</td>
                   <td>
                     <div className="action-buttons">
                       <button
@@ -185,11 +216,10 @@ const ContasSection: React.FC = () => {
           <div className="form-field">
             <label>Saldo Inicial</label>
             <input 
-              type="number" 
-              step="0.01"
-              value={initialBalance}
-              onChange={(e) => setInitialBalance(e.target.value)}
-              placeholder="0.00"
+              type="text"
+              inputMode="numeric"
+              value={formatCurrencyFromDigitsModal(initialBalanceDigits)}
+              onChange={(e) => handleInitialBalanceChange(e.target.value)}
             />
           </div>
           <div className="modal-actions">

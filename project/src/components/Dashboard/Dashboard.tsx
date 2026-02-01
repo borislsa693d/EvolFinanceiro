@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { transactionsAPI, categoriesAPI, creditCardsAPI, accountsAPI } from '../../lib/api';
-import type { Transaction, Category, CreditCard, Account } from '../../lib/api';
+import { transactionsAPI, categoriesAPI, creditCardsAPI, accountsAPI, fixedTransactionsAPI } from '../../lib/api';
+import type { Transaction, Category, CreditCard, Account, FixedTransaction } from '../../lib/api';
 import StatsCards from './StatsCards';
 import ExpensesByCategory from './ExpensesByCategory';
 import WealthEvolution from './WealthEvolution';
@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [fixedTransactions, setFixedTransactions] = useState<FixedTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,17 +31,19 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
-      const [transactionsData, categoriesData, creditCardsData, accountsData] = await Promise.all([
+      const [transactionsData, categoriesData, creditCardsData, accountsData, fixedData] = await Promise.all([
         transactionsAPI.getAll(),
         categoriesAPI.getAll(),
         creditCardsAPI.getAll(),
         accountsAPI.getAll(),
+        fixedTransactionsAPI.getAll(),
       ]);
 
       setTransactions(transactionsData);
       setCategories(categoriesData);
       setCreditCards(creditCardsData);
       setAccounts(accountsData);
+      setFixedTransactions(fixedData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -95,6 +98,7 @@ export default function Dashboard() {
           allTransactions={transactions}
           creditCards={creditCards}
           accounts={accounts}
+          fixedTransactions={fixedTransactions}
         />
 
         <div className="charts-section">

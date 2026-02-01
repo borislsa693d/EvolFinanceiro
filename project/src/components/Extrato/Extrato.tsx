@@ -8,6 +8,8 @@ import './Extrato.css';
 import { getCategoryColor } from '../../lib/chartColors';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import Modal from '../Modal/Modal';
+import TransactionForm from '../Transactions/TransactionForm';
 
 const Extrato = () => {
   const { user } = useAuth();
@@ -17,6 +19,8 @@ const Extrato = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isNewTransactionModalOpen, setIsNewTransactionModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   // Filtros
   const [periodMode, setPeriodMode] = useState<'month' | 'year' | 'custom'>('month');
@@ -24,6 +28,7 @@ const Extrato = () => {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [isPeriodMenuOpen, setIsPeriodMenuOpen] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState('');
   const [selectedCard, setSelectedCard] = useState('');
 
@@ -156,8 +161,20 @@ const Extrato = () => {
   };
 
   const handleEdit = (transaction: Transaction) => {
-    // Navegar para página de nova transação com dados para edição
-    navigate('/new-transaction', { state: { editTransaction: transaction } });
+    if (window.innerWidth <= 1024) {
+      navigate('/new-transaction', { state: { editTransaction: transaction } });
+      return;
+    }
+    setEditingTransaction(transaction);
+    setIsNewTransactionModalOpen(true);
+  };
+
+  const handleOpenNewTransaction = () => {
+    if (window.innerWidth <= 1024) {
+      navigate('/new-transaction');
+      return;
+    }
+    setIsNewTransactionModalOpen(true);
   };
 
   const getCategoryName = (categoryId: string | null) => {
@@ -304,7 +321,7 @@ const Extrato = () => {
     const rows = transactions.map((transaction) => {
       const date = formatDate(transaction.date);
       const description = transaction.description || '-';
-      const typeLabel = transaction.type === 'income' ? 'Entrada' : 'Saída';
+      const typeLabel = transaction.type === 'income' ? 'Receita' : 'Despesa';
       const account = getAccountName(transaction.account_id || null, transaction.credit_card_id || null);
       const category = getCategoryName(transaction.category_id || null);
       const value = formatAmountSigned(transaction.amount, transaction.type);
@@ -324,7 +341,7 @@ const Extrato = () => {
   };
 
   const handleExportPDF = async () => {
-    const siteName = 'EvolFinanceiro';
+    const siteName = 'Impulso+';
     const userName = getUserDisplayName();
     const periodLabel = getPeriodLabel();
 
@@ -378,7 +395,7 @@ const Extrato = () => {
     };
 
     const pieSvg = slices.length === 0
-      ? '<div class="empty-chart">Nenhuma despesa no per�odo</div>'
+      ? '<div class="empty-chart">Nenhuma despesa no per�odo</div>'
       : slices.length === 1
         ? (() => {
             const slice = slices[0];
@@ -626,14 +643,14 @@ const Extrato = () => {
                   <div class="bar-rect" style="background: #22c55e;"></div>
                   <div class="bar-value">${formatAmount(incomeTotal)}</div>
                 </div>
-                <div class="bar-label">Entrada</div>
+                <div class="bar-label">Receita</div>
               </div>
               <div class="bar">
                 <div class="bar-column" style="--bar-height:${Math.max((expenseTotal / maxValue) * 100, 5)}%;">
                   <div class="bar-rect" style="background: #ef4444;"></div>
                   <div class="bar-value">${formatAmount(expenseTotal)}</div>
                 </div>
-                <div class="bar-label">Sa&iacute;da</div>
+                <div class="bar-label">Despesa</div>
               </div>
               <div class="bar">
                 <div class="bar-column" style="--bar-height:${Math.max((Math.abs(balanceTotal) / maxValue) * 100, 5)}%;">
@@ -686,12 +703,12 @@ const Extrato = () => {
             </thead>
             <tbody>
               ${transactions.length === 0 ? `
-                <tr><td colspan="6" class="empty-chart">Nenhuma transa��o encontrada</td></tr>
+                <tr><td colspan="6" class="empty-chart">Nenhuma transa��o encontrada</td></tr>
               ` : transactions.map((transaction) => `
                 <tr>
                   <td>${escapeHtml(formatDate(transaction.date))}</td>
                   <td>${escapeHtml(transaction.description || '-')}</td>
-                  <td>${transaction.type === 'income' ? 'Entrada' : 'Sa&iacute;da'}</td>
+                  <td>${transaction.type === 'income' ? 'Receita' : 'Despesa'}</td>
                   <td>${escapeHtml(getAccountName(transaction.account_id || null, transaction.credit_card_id || null))}</td>
                   <td>${escapeHtml(getCategoryName(transaction.category_id || null))}</td>
                   <td class="value-cell ${transaction.type === 'expense' ? 'value-expense' : ''}">${escapeHtml(formatAmountSigned(transaction.amount, transaction.type))}</td>
@@ -753,7 +770,7 @@ const Extrato = () => {
         <h2 className="text-3xl font-bold mb-6">Extrato Mensal</h2>
         <button 
           className="add-transaction-button desktop-only"
-          onClick={() => navigate('/new-transaction')}
+          onClick={handleOpenNewTransaction}
           title="Nova Transação"
         >
           <FaPlus />
@@ -883,12 +900,38 @@ const Extrato = () => {
             <FaTimes />
             Limpar
           </button>
-          <button className="filter-button export-button" onClick={handleExportPDF}>
-            Exportar PDF
-          </button>
-          <button className="filter-button export-button" onClick={handleExportCSV}>
-            Exportar CSV
-          </button>
+          <div className="export-menu">
+            <button
+              className="filter-button export-button"
+              onClick={() => setIsExportMenuOpen((prev) => !prev)}
+              aria-haspopup="true"
+              aria-expanded={isExportMenuOpen}
+            >
+              Exportar
+            </button>
+            {isExportMenuOpen && (
+              <div className="export-menu-list">
+                <button
+                  className="export-menu-item"
+                  onClick={() => {
+                    setIsExportMenuOpen(false);
+                    handleExportPDF();
+                  }}
+                >
+                  PDF
+                </button>
+                <button
+                  className="export-menu-item"
+                  onClick={() => {
+                    setIsExportMenuOpen(false);
+                    handleExportCSV();
+                  }}
+                >
+                  CSV
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -917,7 +960,7 @@ const Extrato = () => {
                   <td>{transaction.description || '-'}</td>
                   <td>
                     <span className={`transaction-type ${transaction.type}`}>
-                      {transaction.type === 'income' ? 'Entrada' : 'Saída'}
+                      {transaction.type === 'income' ? 'Receita' : 'Despesa'}
                     </span>
                   </td>
                   <td>{getAccountName(transaction.account_id || null, transaction.credit_card_id || null)}</td>
@@ -952,6 +995,28 @@ const Extrato = () => {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={isNewTransactionModalOpen}
+        onClose={() => {
+          setIsNewTransactionModalOpen(false);
+          setEditingTransaction(null);
+        }}
+        title={editingTransaction ? 'Editar Transação' : 'Registrar Transação'}
+      >
+        <TransactionForm
+          editTransaction={editingTransaction || undefined}
+          onCancel={() => {
+            setIsNewTransactionModalOpen(false);
+            setEditingTransaction(null);
+          }}
+          onSaved={async () => {
+            await loadData();
+            setIsNewTransactionModalOpen(false);
+            setEditingTransaction(null);
+          }}
+        />
+      </Modal>
     </div>
   );
 };

@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { transactionsAPI, categoriesAPI, accountsAPI, creditCardsAPI, fixedTransactionsAPI } from '../../lib/api';
-import type { Transaction, Category, Account, CreditCard, FixedTransaction } from '../../lib/api';
-import { ChevronLeft, ChevronRight, Plus, Edit, Trash2 } from 'lucide-react';
-import Modal from '../Modal/Modal';
+import { transactionsAPI, accountsAPI, creditCardsAPI, fixedTransactionsAPI } from '../../lib/api';
+import type { Transaction, Account, CreditCard, FixedTransaction } from '../../lib/api';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import './PrevisaoPage.css';
 
 export default function PrevisaoPage() {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fixedTransactions, setFixedTransactions] = useState<FixedTransaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,21 +16,6 @@ export default function PrevisaoPage() {
   // Estado do mês selecionado (iniciando em Janeiro 2026)
   const [selectedMonth, setSelectedMonth] = useState(1); // 1 = Janeiro
   const [selectedYear, setSelectedYear] = useState(2026);
-
-  // Estados para modais de receitas/despesas fixas
-  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
-  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
-  const [editingFixed, setEditingFixed] = useState<FixedTransaction | null>(null);
-
-  // Form state para receitas/despesas fixas
-  const [fixedForm, setFixedForm] = useState({
-    description: '',
-    amount: '',
-    day_of_month: '1',
-    category_id: '',
-    account_id: '',
-    credit_card_id: '',
-  });
 
   useEffect(() => {
     if (user) {
@@ -46,17 +29,15 @@ export default function PrevisaoPage() {
     if (!user) return;
 
     try {
-      const [transactionsData, fixedData, categoriesData, accountsData, creditCardsData] = await Promise.all([
+      const [transactionsData, fixedData, accountsData, creditCardsData] = await Promise.all([
         transactionsAPI.getAll(),
         fixedTransactionsAPI.getAll(),
-        categoriesAPI.getAll(),
         accountsAPI.getAll(),
         creditCardsAPI.getAll(),
       ]);
 
       setTransactions(transactionsData);
       setFixedTransactions(fixedData);
-      setCategories(categoriesData);
       setAccounts(accountsData);
       setCreditCards(creditCardsData);
     } catch (error) {
@@ -71,22 +52,6 @@ export default function PrevisaoPage() {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
-  };
-
-  const formatCurrencyInput = (raw: string) => {
-    const digits = raw.replace(/\D/g, '');
-    if (!digits) return '';
-    const value = Number(digits) / 100;
-    return value.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const parseCurrencyInput = (formatted: string) => {
-    const normalized = formatted.replace(/\./g, '').replace(',', '.');
-    const value = Number(normalized);
-    return Number.isNaN(value) ? 0 : value;
   };
 
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -345,130 +310,7 @@ export default function PrevisaoPage() {
     return days;
   };
 
-  const handleOpenIncomeModal = (fixed?: FixedTransaction) => {
-    if (fixed) {
-      setEditingFixed(fixed);
-      setFixedForm({
-        description: fixed.description,
-        amount: formatCurrencyInput(fixed.amount.toString()),
-        day_of_month: fixed.day_of_month.toString(),
-        category_id: fixed.category_id || '',
-        account_id: '',
-        credit_card_id: '',
-      });
-    } else {
-      setEditingFixed(null);
-      setFixedForm({
-        description: '',
-        amount: '',
-        day_of_month: '1',
-        category_id: '',
-        account_id: '',
-        credit_card_id: '',
-      });
-    }
-    setIsIncomeModalOpen(true);
-  };
-
-  const handleOpenExpenseModal = (fixed?: FixedTransaction) => {
-    if (fixed) {
-      setEditingFixed(fixed);
-      setFixedForm({
-        description: fixed.description,
-        amount: formatCurrencyInput(fixed.amount.toString()),
-        day_of_month: fixed.day_of_month.toString(),
-        category_id: fixed.category_id || '',
-        account_id: fixed.account_id || '',
-        credit_card_id: fixed.credit_card_id || '',
-      });
-    } else {
-      setEditingFixed(null);
-      setFixedForm({
-        description: '',
-        amount: '',
-        day_of_month: '1',
-        category_id: '',
-        account_id: '',
-        credit_card_id: '',
-      });
-    }
-    setIsExpenseModalOpen(true);
-  };
-
-  const handleCloseModals = () => {
-    setIsIncomeModalOpen(false);
-    setIsExpenseModalOpen(false);
-    setEditingFixed(null);
-    setFixedForm({
-      description: '',
-      amount: '',
-      day_of_month: '1',
-      category_id: '',
-      account_id: '',
-      credit_card_id: '',
-    });
-  };
-
-  const handleSubmitFixed = async (type: 'income' | 'expense') => {
-    try {
-      const startDate = new Date(selectedYear, selectedMonth - 1, 1).toISOString().slice(0, 10);
-      if (!fixedForm.amount) {
-        alert('Informe um valor válido');
-        return;
-      }
-
-      const data: any = {
-        type,
-        description: fixedForm.description,
-        amount: parseCurrencyInput(fixedForm.amount),
-        day_of_month: parseInt(fixedForm.day_of_month),
-        start_date: startDate,
-        category_id: fixedForm.category_id || null,
-      };
-
-      if (type === 'expense') {
-        data.account_id = fixedForm.account_id || null;
-        data.credit_card_id = fixedForm.credit_card_id || null;
-      }
-
-      if (editingFixed) {
-        await fixedTransactionsAPI.update(editingFixed.id, data);
-      } else {
-        await fixedTransactionsAPI.create(data);
-      }
-
-      await loadData();
-      handleCloseModals();
-    } catch (error) {
-      console.error('Erro ao salvar receita/despesa fixa:', error);
-      alert('Erro ao salvar');
-    }
-  };
-
-  const handleDeleteFixed = async (fixed: FixedTransaction) => {
-    if (!confirm('Deseja encerrar esta receita/despesa fixa a partir deste mês?')) return;
-
-    try {
-      // Encerrar a recorrência no último dia do mês anterior ao selecionado
-      const previousMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
-      const previousYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
-      const lastDayPrevMonth = new Date(previousYear, previousMonth, 0).getDate();
-      const endDate = new Date(previousYear, previousMonth - 1, lastDayPrevMonth);
-      const endDateStr = endDate.toISOString().slice(0, 10);
-
-      await fixedTransactionsAPI.update(fixed.id, { end_date: endDateStr });
-      await loadData();
-    } catch (error) {
-      console.error('Erro ao encerrar:', error);
-      alert('Erro ao encerrar');
-    }
-  };
-
-  const incomeFixed = fixedTransactions.filter((f) => f.type === 'income' && isFixedActiveForMonth(f, selectedMonth, selectedYear));
-  const expenseFixed = fixedTransactions.filter((f) => f.type === 'expense' && isFixedActiveForMonth(f, selectedMonth, selectedYear));
   const spreadsheetData = generateDailySpreadsheet();
-  const incomeCategories = categories.filter((c) => c.type === 'income');
-  const expenseCategories = categories.filter((c) => c.type === 'expense');
 
   if (loading) {
     return (
@@ -487,147 +329,51 @@ export default function PrevisaoPage() {
 
   return (
     <div className="previsao-page">
-      {/* Header com navegação de mês */}
-      <div className="previsao-header">
-        <button 
-          className="month-nav-button"
-          onClick={() => navigateMonth('prev')}
-          aria-label="Mês anterior"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        
-        <h2 className="previsao-title">
-          {monthNames[selectedMonth - 1]}/{selectedYear}
-        </h2>
-        
-        <button 
-          className="month-nav-button"
-          onClick={() => navigateMonth('next')}
-          aria-label="Próximo mês"
-        >
-          <ChevronRight size={24} />
-        </button>
-      </div>
-
-      {/* Seções de Receitas Fixas e Despesas Fixas */}
-      <div className="fixed-sections-container">
-        {/* Receitas Fixas */}
-        <div className="fixed-section">
-          <div className="fixed-section-header">
-            <h3>Receitas Fixas</h3>
-            <button 
-              className="add-fixed-button"
-              onClick={() => handleOpenIncomeModal()}
-            >
-              <Plus size={20} />
-            </button>
-          </div>
-          
-          <div className="fixed-list">
-            {incomeFixed.length === 0 ? (
-              <div className="empty-fixed">Nenhuma receita fixa cadastrada</div>
-            ) : (
-              incomeFixed.map((fixed) => (
-                <div key={fixed.id} className="fixed-item">
-                  <div className="fixed-item-info">
-                    <span className="fixed-day">Dia {fixed.day_of_month}</span>
-                    <span className="fixed-description">{fixed.description}</span>
-                    <span className="fixed-amount income">{formatCurrency(fixed.amount)}</span>
-                  </div>
-                  <div className="fixed-item-actions">
-                    <button
-                      className="icon-button edit"
-                      onClick={() => handleOpenIncomeModal(fixed)}
-                      title="Editar"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      className="icon-button delete"
-                      onClick={() => handleDeleteFixed(fixed)}
-                      title="Encerrar"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Despesas Fixas */}
-        <div className="fixed-section">
-          <div className="fixed-section-header">
-            <h3>Despesas Fixas</h3>
-            <button 
-              className="add-fixed-button"
-              onClick={() => handleOpenExpenseModal()}
-            >
-              <Plus size={20} />
-            </button>
-          </div>
-          
-          <div className="fixed-list">
-            {expenseFixed.length === 0 ? (
-              <div className="empty-fixed">Nenhuma despesa fixa cadastrada</div>
-            ) : (
-              expenseFixed.map((fixed) => (
-                <div key={fixed.id} className="fixed-item">
-                  <div className="fixed-item-info">
-                    <span className="fixed-day">Dia {fixed.day_of_month}</span>
-                    <span className="fixed-description">{fixed.description}</span>
-                    <span className="fixed-amount expense">{formatCurrency(fixed.amount)}</span>
-                  </div>
-                  <div className="fixed-item-actions">
-                    <button
-                      className="icon-button edit"
-                      onClick={() => handleOpenExpenseModal(fixed)}
-                      title="Editar"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      className="icon-button delete"
-                      onClick={() => handleDeleteFixed(fixed)}
-                      title="Encerrar"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Planilha Dia a Dia */}
       <div className="spreadsheet-card">
-        <h3 className="spreadsheet-title">{fullMonthNames[selectedMonth - 1]}/{selectedYear}</h3>
+        <div className="spreadsheet-header">
+          <button 
+            className="month-nav-button"
+            onClick={() => navigateMonth('prev')}
+            aria-label="Mês anterior"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          
+          <h2 className="previsao-title">
+            {fullMonthNames[selectedMonth - 1]}/{selectedYear}
+          </h2>
+          
+          <button 
+            className="month-nav-button"
+            onClick={() => navigateMonth('next')}
+            aria-label="Próximo mês"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
         
         <div className="spreadsheet-container">
           <table className="daily-spreadsheet">
             <thead>
               <tr>
                 <th>Dia</th>
-                <th>Entrada</th>
-                <th>Saída</th>
-                <th>Saldo</th>
+                <th className="amount-col">Receita</th>
+                <th className="amount-col">Despesa</th>
+                <th className="balance-col">Saldo</th>
               </tr>
             </thead>
             <tbody>
               {spreadsheetData.map((row) => (
                 <tr key={row.day}>
                   <td className="day-cell">{row.day}</td>
-                  <td className={`amount-cell income ${row.income > 0 ? 'has-value' : ''}`}>
+                  <td className={`amount-cell amount-col income ${row.income > 0 ? 'has-value' : ''}`}>
                     {row.income > 0 ? formatCurrency(row.income) : '-'}
                   </td>
-                  <td className={`amount-cell expense ${row.expense > 0 ? 'has-value' : ''}`}>
+                  <td className={`amount-cell amount-col expense ${row.expense > 0 ? 'has-value' : ''}`}>
                     {row.expense > 0 ? formatCurrency(row.expense) : '-'}
                   </td>
-                  <td className={`balance-cell ${row.balance >= 0 ? 'positive' : 'negative'}`}>
+                  <td className={`balance-cell balance-col ${row.balance >= 0 ? 'positive' : 'negative'}`}>
                     {formatCurrency(row.balance)}
                   </td>
                 </tr>
@@ -636,142 +382,6 @@ export default function PrevisaoPage() {
           </table>
         </div>
       </div>
-
-      {/* Modal Receita Fixa */}
-      <Modal 
-        isOpen={isIncomeModalOpen} 
-        onClose={handleCloseModals}
-        title={editingFixed ? 'Editar Receita Fixa' : 'Nova Receita Fixa'}
-      >
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmitFixed('income'); }}>
-          <div className="form-field">
-            <label>Descrição *</label>
-            <input
-              type="text"
-              value={fixedForm.description}
-              onChange={(e) => setFixedForm({ ...fixedForm, description: e.target.value })}
-              required
-              placeholder="Ex: Salário"
-            />
-          </div>
-
-          <div className="form-field">
-            <label>Valor *</label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={fixedForm.amount}
-              onChange={(e) => setFixedForm({ ...fixedForm, amount: formatCurrencyInput(e.target.value) })}
-              required
-              placeholder="0,00"
-            />
-          </div>
-
-          <div className="form-field">
-            <label>Dia do Mês *</label>
-            <input
-              type="number"
-              min="1"
-              max="31"
-              value={fixedForm.day_of_month}
-              onChange={(e) => setFixedForm({ ...fixedForm, day_of_month: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="form-field">
-            <label>Categoria</label>
-            <select
-              value={fixedForm.category_id}
-              onChange={(e) => setFixedForm({ ...fixedForm, category_id: e.target.value })}
-            >
-              <option value="">Selecione...</option>
-              {incomeCategories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="modal-actions">
-            <button type="button" className="button-secondary" onClick={handleCloseModals}>
-              Cancelar
-            </button>
-            <button type="submit" className="button-primary">
-              {editingFixed ? 'Atualizar' : 'Salvar'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Modal Despesa Fixa */}
-      <Modal 
-        isOpen={isExpenseModalOpen} 
-        onClose={handleCloseModals}
-        title={editingFixed ? 'Editar Despesa Fixa' : 'Nova Despesa Fixa'}
-      >
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmitFixed('expense'); }}>
-          <div className="form-field">
-            <label>Descrição *</label>
-            <input
-              type="text"
-              value={fixedForm.description}
-              onChange={(e) => setFixedForm({ ...fixedForm, description: e.target.value })}
-              required
-              placeholder="Ex: Aluguel"
-            />
-          </div>
-
-          <div className="form-field">
-            <label>Valor *</label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={fixedForm.amount}
-              onChange={(e) => setFixedForm({ ...fixedForm, amount: formatCurrencyInput(e.target.value) })}
-              required
-              placeholder="0,00"
-            />
-          </div>
-
-          <div className="form-field">
-            <label>Dia do Mês *</label>
-            <input
-              type="number"
-              min="1"
-              max="31"
-              value={fixedForm.day_of_month}
-              onChange={(e) => setFixedForm({ ...fixedForm, day_of_month: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="form-field">
-            <label>Categoria</label>
-            <select
-              value={fixedForm.category_id}
-              onChange={(e) => setFixedForm({ ...fixedForm, category_id: e.target.value })}
-            >
-              <option value="">Selecione...</option>
-              {expenseCategories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="modal-actions">
-            <button type="button" className="button-secondary" onClick={handleCloseModals}>
-              Cancelar
-            </button>
-            <button type="submit" className="button-primary">
-              {editingFixed ? 'Atualizar' : 'Salvar'}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }

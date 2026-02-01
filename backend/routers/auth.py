@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
-from auth import get_password_hash, authenticate_user, create_access_token, get_current_user
+from auth import get_password_hash, authenticate_user, create_access_token, get_current_user, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -143,3 +143,23 @@ async def update_me(
     
     return current_user
 
+@router.put("/change-password")
+async def change_password(
+    payload: schemas.PasswordChange,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Alterar senha do usuário autenticado"""
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Senha atual incorreta"
+        )
+
+    current_user.hashed_password = get_password_hash(payload.new_password)
+    current_user.updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"message": "Senha atualizada com sucesso"}

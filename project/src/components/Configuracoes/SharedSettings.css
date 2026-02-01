@@ -57,6 +57,70 @@
   gap: 1rem;
 }
 
+.categories-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.categories-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.categories-view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: #0a0a0a;
+  border: 1px solid #333333;
+  padding: 0.3rem;
+  border-radius: 999px;
+}
+
+.view-pill {
+  background: transparent;
+  border: none;
+  color: #aaaaaa;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-pill.active {
+  background: #ffffff;
+  color: #000000;
+}
+
+.view-pill.income.active {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.view-pill.expense.active {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.categories-search input {
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid #333333;
+  background-color: #0a0a0a;
+  color: #ffffff;
+  font-size: 0.85rem;
+  min-width: 220px;
+}
+
+.categories-search input:focus {
+  outline: none;
+  border-color: #ffffff;
+}
+
 .add-button {
   background-color: #ffffff;
   color: #000000;
@@ -80,6 +144,10 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.modal-form.compact {
+  gap: 0.9rem;
 }
 
 /* Categories List Styles */
@@ -115,6 +183,11 @@
   .config-section-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .categories-search input {
+    width: 100%;
+    min-width: 0;
   }
   
   .add-button {
@@ -153,6 +226,19 @@
   gap: 0.5rem;
 }
 
+.category-type-icon {
+  font-size: 0.95rem;
+}
+
+.category-count {
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  color: #cccccc;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
 .income-title {
   color: #10b981;
 }
@@ -175,10 +261,12 @@
   padding: 1rem 1.5rem;
   border-left: 4px solid #333333;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .categoria-item:hover {
   background-color: #1a1a1a;
+  border-color: #ffffff;
 }
 
 .categoria-item-content {

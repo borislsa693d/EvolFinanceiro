@@ -128,9 +128,30 @@
   color: #888888;
 }
 
+.stat-value.income {
+  color: #22c55e;
+}
+
+.stat-value.expense {
+  color: #ef4444;
+}
+
+.stat-value.balance {
+  color: #ffffff;
+}
+
 .stat-subtitle {
   color: #666666;
   font-size: 0.8rem;
+}
+
+.stat-subtitle-value.negative {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.stat-subtitle.stat-subtitle-bright {
+  color: #ffffff;
 }
 
 .charts-section {
@@ -343,6 +364,48 @@
   max-height: 280px;
   overflow-y: auto;
   overflow-x: hidden;
+  margin-left: auto;
+}
+
+.pie-legend::-webkit-scrollbar {
+  width: 10px;
+}
+
+.pie-legend::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+.pie-legend::-webkit-scrollbar-thumb {
+  background: #1f1f1f;
+  border-radius: 10px;
+  border: 2px solid #0a0a0a;
+}
+
+.pie-legend::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2a;
+}
+
+.pie-legend {
+  scrollbar-color: #1f1f1f #0a0a0a;
+  scrollbar-width: thin;
+}
+
+.legend-back {
+  background: transparent;
+  border: 1px solid #333333;
+  color: #cccccc;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.legend-back:hover {
+  border-color: #ffffff;
+  color: #ffffff;
 }
 
 .legend-item {
@@ -353,6 +416,7 @@
   background: #000000;
   border: 1px solid #222222;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .legend-item:hover {
@@ -478,8 +542,8 @@
   top: -1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.65rem;
-  color: #888888;
+  font-size: 0.7rem;
+  color: #ffffff;
   white-space: nowrap;
   font-weight: 600;
 }
@@ -597,18 +661,46 @@
   justify-content: space-between;
   align-items: flex-end;
   height: 350px;
-  gap: 0.5rem;
-  padding: 1rem 0;
+  gap: 0.75rem;
+  padding: 6rem 0 1rem;
   overflow-x: auto;
+  overflow-y: visible;
+}
+
+.chart-card-evolution .chart-container {
+  margin-top: 2.5rem;
+}
+
+.column-chart-evolution::-webkit-scrollbar {
+  height: 10px;
+}
+
+.column-chart-evolution::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+.column-chart-evolution::-webkit-scrollbar-thumb {
+  background: #1f1f1f;
+  border-radius: 10px;
+  border: 2px solid #0a0a0a;
+}
+
+.column-chart-evolution::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2a;
+}
+
+.column-chart-evolution {
+  scrollbar-color: #1f1f1f #0a0a0a;
+  scrollbar-width: thin;
 }
 
 .chart-column-evolution {
-  flex: 1;
+  flex: 0 0 calc((100% - (0.75rem * 5)) / 6);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  min-width: 60px;
+  min-width: 120px;
 }
 
 .column-bars-evolution {
@@ -616,8 +708,9 @@
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: 0.25rem;
+  gap: 0.5rem;
   height: 280px;
+  overflow: visible;
 }
 
 .column-bars-evolution.empty {
@@ -630,6 +723,15 @@
   display: flex;
   align-items: flex-end;
   height: 100%;
+}
+
+.column-bar {
+  overflow: visible;
+}
+
+.column-chart-evolution .bar-value {
+  z-index: 2;
+  top: -2.25rem;
 }
 
 

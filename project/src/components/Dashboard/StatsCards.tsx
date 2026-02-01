@@ -1,14 +1,15 @@
 import { TrendingUp, TrendingDown, CreditCard, Wallet } from 'lucide-react';
-import { Transaction, CreditCard as CreditCardType, Account } from '../../lib/api';
+import { Transaction, CreditCard as CreditCardType, Account, FixedTransaction } from '../../lib/api';
 
 interface StatsCardsProps {
   transactions: Transaction[];
   allTransactions: Transaction[];
   creditCards: CreditCardType[];
   accounts: Account[];
+  fixedTransactions: FixedTransaction[];
 }
 
-export default function StatsCards({ transactions, allTransactions, creditCards, accounts }: StatsCardsProps) {
+export default function StatsCards({ transactions, allTransactions, creditCards, accounts, fixedTransactions }: StatsCardsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -31,6 +32,24 @@ export default function StatsCards({ transactions, allTransactions, creditCards,
 
   // Total de saídas (todas as despesas - conta + cartão)
   const expenses = expenseTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const todayDay = now.getDate();
+
+  const isFixedActiveForMonth = (fixed: FixedTransaction) => {
+    const startDate = fixed.start_date ? new Date(fixed.start_date + 'T00:00:00') : null;
+    const endDate = fixed.end_date ? new Date(fixed.end_date + 'T00:00:00') : null;
+    if (startDate && monthStart < startDate) return false;
+    if (endDate && monthStart > endDate) return false;
+    return true;
+  };
+
+  const fixedExpenseForecast = fixedTransactions
+    .filter((f) => f.type === 'expense' && isFixedActiveForMonth(f))
+    .filter((f) => f.day_of_month >= todayDay)
+    .reduce((sum, f) => sum + Number(f.amount), 0);
 
   // Saldo = Saldos iniciais das contas + Entradas - Saídas de conta bancária (SEM incluir cartão)
   const initialBalance = accounts.reduce((sum, account) => sum + Number(account.initial_balance || 0), 0);
@@ -133,24 +152,26 @@ export default function StatsCards({ transactions, allTransactions, creditCards,
 
   return (
     <div className="stats-grid">
-      {/* Entrada */}
+      {/* Receitas */}
       <div className="stat-card">
         <div className="stat-header">
-          <span className="stat-title">Entrada</span>
+          <span className="stat-title">Receitas</span>
           <TrendingUp className="stat-icon" />
         </div>
-        <div className="stat-value positive">{formatCurrency(income)}</div>
+        <div className="stat-value income">{formatCurrency(income)}</div>
         <div className="stat-subtitle">Total de receitas</div>
       </div>
 
-      {/* Saída */}
+      {/* Despesas */}
       <div className="stat-card">
         <div className="stat-header">
-          <span className="stat-title">Saída</span>
+          <span className="stat-title">Despesas</span>
           <TrendingDown className="stat-icon" />
         </div>
-        <div className="stat-value negative">{formatCurrency(expenses)}</div>
-        <div className="stat-subtitle">Total de despesas</div>
+        <div className="stat-value expense">{formatCurrency(expenses)}</div>
+        <div className="stat-subtitle">
+          A pagar <span className="stat-subtitle-value negative">{formatCurrency(fixedExpenseForecast)}</span>
+        </div>
       </div>
 
       {/* Saldo */}
@@ -159,9 +180,7 @@ export default function StatsCards({ transactions, allTransactions, creditCards,
           <span className="stat-title">Saldo</span>
           <Wallet className="stat-icon" />
         </div>
-        <div className={`stat-value ${balance >= 0 ? 'positive' : 'negative'}`}>
-          {formatCurrency(balance)}
-        </div>
+        <div className="stat-value balance">{formatCurrency(balance)}</div>
         <div className="stat-subtitle">Entradas - Saídas (Conta)</div>
       </div>
 
@@ -171,8 +190,10 @@ export default function StatsCards({ transactions, allTransactions, creditCards,
           <span className="stat-title">Fatura Cartão</span>
           <CreditCard className="stat-icon" />
         </div>
-        <div className="stat-value negative">{formatCurrency(cardInvoice)}</div>
-        <div className="stat-subtitle">Limite Disponível: {formatCurrency(totalAvailableLimit)}</div>
+        <div className="stat-value expense">{formatCurrency(cardInvoice)}</div>
+        <div className="stat-subtitle stat-subtitle-bright">
+          Limite Disponível: {formatCurrency(totalAvailableLimit)}
+        </div>
       </div>
     </div>
   );

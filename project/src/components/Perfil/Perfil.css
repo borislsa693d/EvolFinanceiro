@@ -1,27 +1,37 @@
 .perfil-container {
   color: #ffffff;
+  padding: 2rem 1.5rem 3rem;
+  max-width: 980px;
+  margin: 0 auto;
+  background:
+    radial-gradient(1000px 300px at 10% -10%, rgba(255, 255, 255, 0.06), transparent 60%),
+    radial-gradient(800px 280px at 90% 0%, rgba(34, 197, 94, 0.06), transparent 55%),
+    linear-gradient(180deg, rgba(10, 10, 10, 0.9), rgba(0, 0, 0, 0.95));
+  border-radius: 1rem;
+  border: 1px solid #111111;
 }
 
 .perfil-title {
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.5px;
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
 }
 
 .perfil-form {
-  background-color: #0a0a0a;
-  border: 1px solid #333333;
-  border-radius: 0.5rem;
-  padding: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
+  background: linear-gradient(180deg, rgba(15, 15, 15, 0.95), rgba(5, 5, 5, 0.95));
+  border: 1px solid #1f1f1f;
+  border-radius: 0.75rem;
+  padding: 2rem 2.25rem;
+  max-width: 820px;
+  margin: 1.5rem auto 0;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
 }
 
 .form-section {
   margin-bottom: 2.5rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #1f1f1f;
 }
 
 .perfil-form .form-section:last-of-type {
@@ -31,10 +41,26 @@
 }
 
 .section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #d6d6d6;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12rem;
+  position: relative;
+  padding-left: 0.75rem;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #22c55e, #16a34a);
 }
 
 .form-row {
@@ -47,6 +73,7 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 1rem;
   margin-top: 2rem;
 }
 
@@ -58,37 +85,46 @@
 
 .form-field label {
   font-size: 0.875rem;
-  color: #888888;
+  color: #a1a1a1;
   font-weight: 500;
 }
 
 .form-field input {
   padding: 0.75rem 1rem;
-  border-radius: 0.375rem;
-  border: 1px solid #333333;
-  background-color: #1a1a1a;
+  border-radius: 0.5rem;
+  border: 1px solid #2a2a2a;
+  background-color: #111111;
   color: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-field input:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
 }
 
 .form-field input:disabled {
-  background-color: #2a2a2a;
+  background-color: #1f1f1f;
   color: #888888;
   cursor: not-allowed;
 }
 
 .button-primary {
-  background-color: #ffffff;
+  background: linear-gradient(135deg, #ffffff, #d4d4d4);
   color: #000000;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 .button-primary:hover:not(:disabled) {
-  background-color: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
 .button-primary:disabled {
@@ -97,21 +133,48 @@
 }
 
 .button-secondary {
-  background-color: #333333;
+  background-color: #1a1a1a;
   color: #ffffff;
   padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.375rem;
+  border: 1px solid #333333;
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: border-color 0.2s, transform 0.2s;
 }
 
 .button-secondary:hover {
-  background-color: #4a4a4a;
+  border-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.form-actions .button-secondary:hover {
+  border-color: #ef4444;
+  color: #ffffff;
+  background-color: #3a0a0a;
+}
+
+.password-rules {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.password-rule {
+  font-size: 0.75rem;
+  color: #888888;
+}
+
+.password-rule.ok {
+  color: #22c55e;
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
+  .perfil-container {
+    padding: 1.5rem 1rem 2.5rem;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 1.5rem; /* O gap vertical entre os campos */

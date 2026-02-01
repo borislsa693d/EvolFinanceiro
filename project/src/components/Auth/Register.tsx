@@ -15,6 +15,13 @@ export default function Register({ onToggle }: RegisterProps) {
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
+  const passwordChecks = {
+    hasUpper: /[A-Z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecial: /[^A-Za-z0-9]/.test(password),
+    matches: password.length > 0 && password === confirmPassword,
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -25,8 +32,8 @@ export default function Register({ onToggle }: RegisterProps) {
       return;
     }
 
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+    if (!passwordChecks.hasUpper || !passwordChecks.hasNumber || !passwordChecks.hasSpecial) {
+      setError('A senha deve conter letra maiúscula, número e caractere especial');
       return;
     }
 
@@ -47,8 +54,18 @@ export default function Register({ onToggle }: RegisterProps) {
 
   return (
     <div className="auth-container">
+      <header className="auth-header">
+        <div className="auth-header-brand">
+          Impulso<span className="brand-plus">+</span>
+        </div>
+        <button className="auth-header-link" onClick={onToggle}>
+          Fazer login
+        </button>
+      </header>
       <div className="auth-card">
-        <h1 className="auth-logo">FINANCEFLOW</h1>
+        <h1 className="auth-logo">
+          Impulso<span className="brand-plus">+</span>
+        </h1>
         <p className="auth-subtitle">Crie sua conta</p>
 
         {error && <div className="error-message">{error}</div>}
@@ -87,6 +104,17 @@ export default function Register({ onToggle }: RegisterProps) {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <div className="password-rules">
+              <span className={`password-rule ${passwordChecks.hasUpper ? 'ok' : ''}`}>
+                • 1 letra maiúscula
+              </span>
+              <span className={`password-rule ${passwordChecks.hasNumber ? 'ok' : ''}`}>
+                • 1 número
+              </span>
+              <span className={`password-rule ${passwordChecks.hasSpecial ? 'ok' : ''}`}>
+                • 1 caractere especial
+              </span>
+            </div>
           </div>
 
           <div className="form-group">
@@ -102,6 +130,11 @@ export default function Register({ onToggle }: RegisterProps) {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
+            <div className="password-rules">
+              <span className={`password-rule ${passwordChecks.matches ? 'ok' : ''}`}>
+                • Senhas iguais
+              </span>
+            </div>
           </div>
 
           <button type="submit" className="auth-button" disabled={loading}>
@@ -116,6 +149,10 @@ export default function Register({ onToggle }: RegisterProps) {
           <button onClick={onToggle}>Fazer login</button>
         </div>
       </div>
+      <footer className="auth-footer">
+        <span>© 2026 Impulso+</span>
+        <span>Controle simples. Decisões inteligentes.</span>
+      </footer>
     </div>
   );
 }

@@ -12,6 +12,8 @@ interface CategoryPieChartProps {
 
 export default function CategoryPieChart({ transactions, categories, type, title }: CategoryPieChartProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [showOthers, setShowOthers] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{
     xPercent: number;
     yPercent: number;
@@ -41,10 +43,12 @@ export default function CategoryPieChart({ transactions, categories, type, title
 
   // Agrupar categorias além das top 6 em "Outros" (recomendado máximo de 5-7 fatias)
   const MAX_SLICES = 6;
+  let otherCategoriesData: typeof categoryExpenses = [];
   
   if (categoryExpenses.length > MAX_SLICES) {
     let topCategories = categoryExpenses.slice(0, MAX_SLICES);
     const otherCategories = categoryExpenses.slice(MAX_SLICES);
+    otherCategoriesData = otherCategories;
 
     // Calcular total de "Outros"
     const othersTotal = otherCategories.reduce((sum, cat) => sum + cat.amount, 0);
@@ -66,6 +70,16 @@ export default function CategoryPieChart({ transactions, categories, type, title
       categoryExpenses = [...topCategories, othersCategory];
     }
   }
+
+  const legendItems = showOthers && otherCategoriesData.length > 0 ? otherCategoriesData : categoryExpenses;
+  const displayCategories = selectedCategoryId
+    ? legendItems.filter((cat) => cat.id === selectedCategoryId)
+    : legendItems;
+  const displayTotal = displayCategories.reduce((sum, cat) => sum + cat.amount, 0);
+  const displayCategoriesWithPercent = displayCategories.map((cat) => ({
+    ...cat,
+    percentage: displayTotal > 0 ? (cat.amount / displayTotal) * 100 : 0,
+  }));
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -92,7 +106,7 @@ export default function CategoryPieChart({ transactions, categories, type, title
   }
 
   let currentAngle = 0;
-  const slices = categoryExpenses.map((cat, index) => {
+  const slices = displayCategoriesWithPercent.map((cat, index) => {
     const angle = (cat.percentage / 100) * 360;
     const color = getCategoryColor(cat.id, cat.color, cat.name, index, cat.type);
     
@@ -144,6 +158,16 @@ export default function CategoryPieChart({ transactions, categories, type, title
     };
   };
 
+  const handleCategoryClick = (categoryId: string) => {
+    if (categoryId === 'others-grouped' && !showOthers) {
+      setShowOthers(true);
+      setSelectedCategoryId(null);
+      return;
+    }
+
+    setSelectedCategoryId((prev) => (prev === categoryId ? null : categoryId));
+  };
+
   return (
     <div className="chart-card">
       <h3 className="chart-title">{title}</h3>
@@ -178,6 +202,7 @@ export default function CategoryPieChart({ transactions, categories, type, title
                         percentage: slice.percentage,
                       });
                     }}
+                    onClick={() => handleCategoryClick(slice.id)}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.opacity = '1';
                       e.currentTarget.style.filter = 'brightness(1)';
@@ -207,6 +232,7 @@ export default function CategoryPieChart({ transactions, categories, type, title
                       percentage: slice.percentage,
                     });
                   }}
+                  onClick={() => handleCategoryClick(slice.id)}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.opacity = '1';
                     e.currentTarget.style.filter = 'brightness(1)';
@@ -218,7 +244,7 @@ export default function CategoryPieChart({ transactions, categories, type, title
             </svg>
             <div className="pie-center">
               <div className="pie-center-label">{type === 'expense' ? 'Despesa' : 'Receita'}</div>
-              <div className="pie-center-value">{formatCurrency(totalAmount)}</div>
+              <div className="pie-center-value">{formatCurrency(displayTotal || totalAmount)}</div>
             </div>
             {tooltip && (
               <div
@@ -233,11 +259,34 @@ export default function CategoryPieChart({ transactions, categories, type, title
           </div>
 
           <div className="pie-legend">
-            {categoryExpenses.map((cat, index) => {
+            {showOthers && otherCategoriesData.length > 0 && (
+              <button
+                className="legend-back"
+                onClick={() => {
+                  setShowOthers(false);
+                  setSelectedCategoryId(null);
+                }}
+              >
+                Voltar
+              </button>
+            )}
+            {legendItems.map((cat, index) => {
               const color = getCategoryColor(cat.id, cat.color, cat.name, index, cat.type);
               
               return (
-                <div key={cat.id} className="legend-item">
+                <div
+                  key={cat.id}
+                  className="legend-item"
+                  onClick={() => handleCategoryClick(cat.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleCategoryClick(cat.id);
+                    }
+                  }}
+                >
                   <div className="legend-label">
                     <div
                       className="legend-color"

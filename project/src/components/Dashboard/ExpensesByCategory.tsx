@@ -13,6 +13,7 @@ export default function ExpensesByCategory({
   categories,
 }: ExpensesByCategoryProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [showOthers, setShowOthers] = useState(false);
   const [tooltip, setTooltip] = useState<{
     xPercent: number;
     yPercent: number;
@@ -39,12 +40,14 @@ export default function ExpensesByCategory({
   // Ordenar por valor (ranking) - maior para menor
   categoryExpenses.sort((a, b) => b.amount - a.amount);
 
-  // Agrupar categorias além das top 6 em "Outros" (recomendado máximo de 5-7 fatias)
-  const MAX_SLICES = 6;
+  // Agrupar categorias além das top 5 em "Outros" (recomendado máximo de 5-7 fatias)
+  const MAX_SLICES = 5;
+  let otherCategoriesData: typeof categoryExpenses = [];
   
   if (categoryExpenses.length > MAX_SLICES) {
     let topCategories = categoryExpenses.slice(0, MAX_SLICES);
     const otherCategories = categoryExpenses.slice(MAX_SLICES);
+    otherCategoriesData = otherCategories;
 
     // Calcular total de "Outros"
     const othersTotal = otherCategories.reduce((sum, cat) => sum + cat.amount, 0);
@@ -66,6 +69,8 @@ export default function ExpensesByCategory({
       categoryExpenses = [...topCategories, othersCategory];
     }
   }
+
+  const legendItems = showOthers && otherCategoriesData.length > 0 ? otherCategoriesData : categoryExpenses;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -176,6 +181,13 @@ export default function ExpensesByCategory({
                         percentage: slice.percentage,
                       });
                     }}
+                    onClick={() => {
+                      if (slice.id === 'others-grouped') {
+                        setShowOthers(true);
+                      } else {
+                        setShowOthers(false);
+                      }
+                    }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.opacity = '1';
                       e.currentTarget.style.filter = 'brightness(1)';
@@ -205,6 +217,13 @@ export default function ExpensesByCategory({
                       percentage: slice.percentage,
                     });
                   }}
+                  onClick={() => {
+                    if (slice.id === 'others-grouped') {
+                      setShowOthers(true);
+                    } else {
+                      setShowOthers(false);
+                    }
+                  }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.opacity = '1';
                     e.currentTarget.style.filter = 'brightness(1)';
@@ -231,7 +250,12 @@ export default function ExpensesByCategory({
           </div>
 
           <div className="pie-legend">
-            {categoryExpenses.map((cat, index) => {
+            {showOthers && otherCategoriesData.length > 0 && (
+              <button className="legend-back" onClick={() => setShowOthers(false)}>
+                Voltar
+              </button>
+            )}
+            {legendItems.map((cat, index) => {
               const color = getCategoryColor(cat.id, cat.color, cat.name, index, cat.type);
               
               return (

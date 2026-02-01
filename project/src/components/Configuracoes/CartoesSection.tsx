@@ -12,8 +12,7 @@ const CartoesSection: React.FC = () => {
 
   // Form state
   const [name, setName] = useState('');
-  const [limitTotal, setLimitTotal] = useState('0');
-  const [limitAvailable, setLimitAvailable] = useState('0');
+  const [limitTotalDigits, setLimitTotalDigits] = useState('');
   const [closingDay, setClosingDay] = useState('');
   const [dueDay, setDueDay] = useState('');
 
@@ -38,29 +37,28 @@ const CartoesSection: React.FC = () => {
       setIsEditing(true);
       setEditingId(card.id);
       setName(card.name);
-      setLimitTotal(card.limit_total.toString());
-      setLimitAvailable(card.limit_available.toString());
+      const totalCents = Math.round(Number(card.limit_total || 0) * 100);
+      setLimitTotalDigits(totalCents > 0 ? String(totalCents) : '');
       setClosingDay(card.closing_day?.toString() || '');
       setDueDay(card.due_day?.toString() || '');
     } else {
       setIsEditing(false);
       setEditingId(null);
       setName('');
-      setLimitTotal('0');
-      setLimitAvailable('0');
+      setLimitTotalDigits('');
       setClosingDay('');
       setDueDay('');
     }
     setIsModalOpen(true);
   };
 
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setIsEditing(false);
     setEditingId(null);
     setName('');
-    setLimitTotal('0');
-    setLimitAvailable('0');
+    setLimitTotalDigits('');
     setClosingDay('');
     setDueDay('');
   };
@@ -72,16 +70,16 @@ const CartoesSection: React.FC = () => {
       if (isEditing && editingId) {
         await creditCardsAPI.update(editingId, {
           name,
-          limit_total: parseFloat(limitTotal),
-          limit_available: parseFloat(limitAvailable),
+          limit_total: limitTotalDigits ? Number(limitTotalDigits) / 100 : 0,
+          limit_available: limitTotalDigits ? Number(limitTotalDigits) / 100 : 0,
           closing_day: closingDay ? parseInt(closingDay) : undefined,
           due_day: dueDay ? parseInt(dueDay) : undefined,
         });
       } else {
         await creditCardsAPI.create({
           name,
-          limit_total: parseFloat(limitTotal),
-          limit_available: parseFloat(limitAvailable),
+          limit_total: limitTotalDigits ? Number(limitTotalDigits) / 100 : 0,
+          limit_available: limitTotalDigits ? Number(limitTotalDigits) / 100 : 0,
           closing_day: closingDay ? parseInt(closingDay) : undefined,
           due_day: dueDay ? parseInt(dueDay) : undefined,
         });
@@ -113,6 +111,37 @@ const CartoesSection: React.FC = () => {
     return <div className="loading">Carregando...</div>;
   }
 
+  const formatCurrencyFromDigitsModal = (digits: string) => {
+    const normalized = digits ? digits : '0';
+    const value = Number(normalized) / 100;
+    const formatted = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+    return `R$ ${formatted}`;
+  };
+
+  const formatCurrencyFromDigitsTable = (digits: string) => {
+    const normalized = digits ? digits : '0';
+    const cents = normalized.padStart(2, '0');
+    const intPart = cents.length > 2 ? cents.slice(0, -2) : '0';
+    const fracPart = cents.slice(-2);
+    const intPadded = intPart.padStart(4, '0');
+    const intWithDots = intPadded.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `R$ ${intWithDots},${fracPart}`;
+  };
+
+  const formatCurrencyFromValue = (value: number) => {
+    const cents = Math.round(Number(value || 0) * 100);
+    return formatCurrencyFromDigitsTable(cents > 0 ? String(cents) : '0');
+  };
+
+  const handleLimitTotalChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    setLimitTotalDigits(digitsOnly);
+  };
+
+
   return (
     <div className="config-section">
       <div className="config-section-header">
@@ -141,8 +170,8 @@ const CartoesSection: React.FC = () => {
               {cartoes.map(cartao => (
                 <tr key={cartao.id}>
                   <td>{cartao.name}</td>
-                  <td>{cartao.limit_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td>{cartao.limit_available.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                  <td>{formatCurrencyFromValue(Number(cartao.limit_total))}</td>
+                  <td>{formatCurrencyFromValue(Number(cartao.limit_available))}</td>
                   <td>{cartao.closing_day ? `Dia ${cartao.closing_day}` : '-'}</td>
                   <td>{cartao.due_day ? `Dia ${cartao.due_day}` : '-'}</td>
                   <td>
@@ -175,7 +204,7 @@ const CartoesSection: React.FC = () => {
         onClose={handleCloseModal} 
         title={isEditing ? 'Editar Cartão de Crédito' : 'Adicionar Cartão de Crédito'}
       >
-        <form className="modal-form" onSubmit={handleSubmit}>
+        <form className="modal-form compact" onSubmit={handleSubmit}>
           <div className="form-field">
             <label>Nome do Cartão *</label>
             <input 
@@ -189,22 +218,11 @@ const CartoesSection: React.FC = () => {
           <div className="form-field">
             <label>Limite Total *</label>
             <input 
-              type="number" 
-              step="0.01"
-              value={limitTotal}
-              onChange={(e) => setLimitTotal(e.target.value)}
+              type="text"
+              inputMode="numeric"
+              value={formatCurrencyFromDigitsModal(limitTotalDigits)}
+              onChange={(e) => handleLimitTotalChange(e.target.value)}
               required
-              placeholder="0.00"
-            />
-          </div>
-          <div className="form-field">
-            <label>Limite Disponível</label>
-            <input 
-              type="number" 
-              step="0.01"
-              value={limitAvailable}
-              onChange={(e) => setLimitAvailable(e.target.value)}
-              placeholder="0.00"
             />
           </div>
           <div className="form-field">

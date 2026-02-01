@@ -7,6 +7,7 @@ import '../Extrato/Extrato.css';
 
 export default function AnalisesPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -41,6 +42,7 @@ export default function AnalisesPage() {
       ]);
 
       setTransactions(transactionsData);
+      setAllTransactions(transactionsData);
       setCategories(categoriesData);
       setCreditCards(creditCardsData);
       setAccounts(accountsData);
@@ -151,8 +153,15 @@ export default function AnalisesPage() {
     );
   }
 
+  const yearlyTransactionsBase = periodMode === 'month' ? allTransactions : transactions;
+  const yearlyTransactions = yearlyTransactionsBase.filter((t) => {
+    if (selectedAccount && t.account_id !== selectedAccount) return false;
+    if (selectedCard && t.credit_card_id !== selectedCard) return false;
+    return true;
+  });
+
   return (
-    <div>
+    <div className="analises-page">
       <div className="filters-panel">
         <div className="filters-container">
           {/* Filtro de Período */}
@@ -281,6 +290,7 @@ export default function AnalisesPage() {
 
       <Analyses
         transactions={transactions}
+        yearlyTransactions={yearlyTransactions}
         categories={categories}
         creditCards={creditCards}
       />

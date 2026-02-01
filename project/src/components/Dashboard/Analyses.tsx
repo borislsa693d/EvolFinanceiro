@@ -5,11 +5,12 @@ import CreditCardMonthlyChart from './CreditCardMonthlyChart';
 
 interface AnalysesProps {
   transactions: Transaction[];
+  yearlyTransactions: Transaction[];
   categories: Category[];
   creditCards: CreditCard[];
 }
 
-export default function Analyses({ transactions, categories, creditCards }: AnalysesProps) {
+export default function Analyses({ transactions, yearlyTransactions, categories, creditCards }: AnalysesProps) {
   return (
     <div className="analyses-section">
       <h2 className="section-title">Análises</h2>
@@ -28,8 +29,8 @@ export default function Analyses({ transactions, categories, creditCards }: Anal
             title="Despesas por Categoria"
           />
         </div>
-        <CreditCardMonthlyChart transactions={transactions} creditCards={creditCards} />
-        <MonthlyEvolutionChart transactions={transactions} />
+        <CreditCardMonthlyChart transactions={yearlyTransactions} creditCards={creditCards} />
+        <MonthlyEvolutionChart transactions={yearlyTransactions} />
       </div>
     </div>
   );

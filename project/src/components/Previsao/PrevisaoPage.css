@@ -5,19 +5,6 @@
   min-height: 100vh;
 }
 
-/* Header com navegação de mês */
-.previsao-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: #0a0a0a;
-  border: 1px solid #333333;
-  border-radius: 0.5rem;
-}
-
 .month-nav-button {
   background: transparent;
   border: 1px solid #333333;
@@ -199,22 +186,44 @@
   border: 1px solid #333333;
   border-radius: 0.5rem;
   padding: 2rem;
-  margin-top: 2rem;
 }
 
-.spreadsheet-title {
-  font-size: 1.125rem;
-  font-weight: 600;
+.spreadsheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
   margin-bottom: 1.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #ffffff;
 }
 
 .spreadsheet-container {
   overflow-x: auto;
   max-height: 600px;
   overflow-y: auto;
+}
+
+.spreadsheet-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.spreadsheet-container::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+.spreadsheet-container::-webkit-scrollbar-thumb {
+  background: #1f1f1f;
+  border-radius: 10px;
+  border: 2px solid #0a0a0a;
+}
+
+.spreadsheet-container::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2a;
+}
+
+.spreadsheet-container {
+  scrollbar-color: #1f1f1f #0a0a0a;
+  scrollbar-width: thin;
 }
 
 .daily-spreadsheet {
@@ -241,6 +250,16 @@
   border-bottom: 2px solid #333333;
 }
 
+.daily-spreadsheet th.amount-col,
+.daily-spreadsheet td.amount-col {
+  text-align: right;
+}
+
+.daily-spreadsheet th.balance-col,
+.daily-spreadsheet td.balance-col {
+  text-align: right;
+}
+
 .daily-spreadsheet td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #222222;
@@ -262,11 +281,11 @@
 }
 
 .amount-cell.income.has-value {
-  color: #ffffff;
+  color: #22c55e;
 }
 
 .amount-cell.expense.has-value {
-  color: #888888;
+  color: #ef4444;
 }
 
 .amount-cell:not(.has-value) {
@@ -283,7 +302,7 @@
 }
 
 .balance-cell.negative {
-  color: #888888;
+  color: #ef4444;
 }
 
 /* Form fields (mesmos estilos das outras páginas) */
@@ -361,13 +380,12 @@
     padding: 1rem;
   }
 
-  .previsao-header {
-    padding: 1rem;
-    gap: 1rem;
-  }
-
   .previsao-title {
     font-size: 1.25rem;
+  }
+
+  .spreadsheet-header {
+    gap: 1rem;
   }
 
   .fixed-sections-container {
@@ -387,6 +405,7 @@
     padding: 0.5rem;
   }
 }
+
 
 
 

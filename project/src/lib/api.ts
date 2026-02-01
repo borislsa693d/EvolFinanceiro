@@ -108,6 +108,13 @@ export const authAPI = {
     });
   },
 
+  async changePassword(current_password: string, new_password: string) {
+    return fetchAPI('/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({ current_password, new_password }),
+    });
+  },
+
   logout() {
     localStorage.removeItem('auth_token');
   },

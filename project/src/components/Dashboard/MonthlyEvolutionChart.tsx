@@ -58,13 +58,15 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
     ...monthsData.map((d) => Math.max(d.income, d.expense, Math.abs(d.balance)))
   );
 
-  const getBarHeight = (value: number) => {
+  const getBarHeight = (value: number, type: 'income' | 'expense' | 'balance') => {
     if (maxValue === 0) return 5;
-    return Math.max((value / maxValue) * 100, 5);
+    const raw = Math.max((value / maxValue) * 100, 5);
+    const capped = Math.min(raw, 75);
+    return capped;
   };
 
   return (
-    <div className="chart-card">
+    <div className="chart-card chart-card-wealth chart-card-evolution">
       <h3 className="chart-title">Evolução Patrimonial</h3>
       <div className="chart-container">
         <div className="column-chart-evolution">
@@ -77,8 +79,8 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
                     <div className="bar-group">
                       <div
                         className="column-bar income"
-                        style={{ height: `${getBarHeight(monthData.income)}%` }}
-                        title={`Entrada: ${formatCurrency(monthData.income)}`}
+                        style={{ height: `${getBarHeight(monthData.income, 'income')}%` }}
+                        title={`Receita: ${formatCurrency(monthData.income)}`}
                       >
                         <span className="bar-value">{formatCurrency(monthData.income)}</span>
                       </div>
@@ -86,8 +88,8 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
                     <div className="bar-group">
                       <div
                         className="column-bar expense"
-                        style={{ height: `${getBarHeight(monthData.expense)}%` }}
-                        title={`Saída: ${formatCurrency(monthData.expense)}`}
+                        style={{ height: `${getBarHeight(monthData.expense, 'expense')}%` }}
+                        title={`Despesa: ${formatCurrency(monthData.expense)}`}
                       >
                         <span className="bar-value">{formatCurrency(monthData.expense)}</span>
                       </div>
@@ -95,7 +97,7 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
                     <div className="bar-group">
                       <div
                         className="column-bar balance"
-                        style={{ height: `${getBarHeight(Math.abs(monthData.balance))}%` }}
+                        style={{ height: `${getBarHeight(Math.abs(monthData.balance), 'balance')}%` }}
                         title={`Saldo: ${formatCurrency(monthData.balance)}`}
                       >
                         <span className="bar-value">{formatCurrency(monthData.balance)}</span>
@@ -116,11 +118,11 @@ export default function MonthlyEvolutionChart({ transactions }: MonthlyEvolution
         <div className="chart-legend-bottom">
           <div className="legend-bottom-item">
             <div className="legend-bottom-color" style={{ background: '#22c55e' }} />
-            <span>Entrada</span>
+            <span>Receita</span>
           </div>
           <div className="legend-bottom-item">
             <div className="legend-bottom-color" style={{ background: '#ef4444' }} />
-            <span>Saída</span>
+            <span>Despesa</span>
           </div>
           <div className="legend-bottom-item">
             <div className="legend-bottom-color" style={{ background: 'linear-gradient(to top, #666666, #999999)' }} />

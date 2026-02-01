@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../lib/api';
+import Modal from '../Modal/Modal';
 import './Perfil.css';
 
 const PerfilPage: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, signOut } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
   
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -14,6 +20,9 @@ const PerfilPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [telegram, setTelegram] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -67,7 +76,48 @@ const PerfilPage: React.FC = () => {
   };
 
   const handleResetPassword = () => {
-    alert('Funcionalidade de redefinir senha em desenvolvimento');
+    setIsPasswordModalOpen(true);
+  };
+
+  const closePasswordModal = () => {
+    setIsPasswordModalOpen(false);
+    setPasswordLoading(false);
+    setPasswordSaved(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  const passwordChecks = {
+    hasUpper: /[A-Z]/.test(newPassword),
+    hasNumber: /\d/.test(newPassword),
+    hasSpecial: /[^A-Za-z0-9]/.test(newPassword),
+    matches: newPassword.length > 0 && newPassword === confirmPassword,
+  };
+
+  const canSavePassword =
+    currentPassword.trim().length > 0 &&
+    passwordChecks.hasUpper &&
+    passwordChecks.hasNumber &&
+    passwordChecks.hasSpecial &&
+    passwordChecks.matches;
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSavePassword) return;
+    setPasswordLoading(true);
+
+    try {
+      await authAPI.changePassword(currentPassword, newPassword);
+      setPasswordSaved(true);
+      setTimeout(() => setPasswordSaved(false), 2500);
+      closePasswordModal();
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error);
+      alert('Erro ao alterar senha. Verifique a senha atual.');
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   if (!user) {
@@ -187,6 +237,13 @@ const PerfilPage: React.FC = () => {
         </div>
         
         <div className="form-actions">
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={handleLogout}
+          >
+            Sair
+          </button>
           <button 
             type="submit" 
             className="button-primary"
@@ -196,8 +253,72 @@ const PerfilPage: React.FC = () => {
           </button>
         </div>
       </form>
+
+      <Modal
+        isOpen={isPasswordModalOpen}
+        onClose={closePasswordModal}
+        title="Redefinir Senha"
+      >
+        <form className="modal-form" onSubmit={handleChangePassword}>
+          <div className="form-field">
+            <label>Senha Atual *</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Nova Senha *</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+            <div className="password-rules">
+              <span className={`password-rule ${passwordChecks.hasUpper ? 'ok' : ''}`}>
+                • 1 letra maiúscula
+              </span>
+              <span className={`password-rule ${passwordChecks.hasNumber ? 'ok' : ''}`}>
+                • 1 número
+              </span>
+              <span className={`password-rule ${passwordChecks.hasSpecial ? 'ok' : ''}`}>
+                • 1 caractere especial
+              </span>
+            </div>
+          </div>
+          <div className="form-field">
+            <label>Confirmar Nova Senha *</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+            <div className="password-rules">
+              <span className={`password-rule ${passwordChecks.matches ? 'ok' : ''}`}>
+                • Senhas iguais
+              </span>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="button-secondary" onClick={closePasswordModal}>
+              Cancelar
+            </button>
+            <button type="submit" className="button-primary" disabled={!canSavePassword || passwordLoading}>
+              {passwordLoading ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
 
 export default PerfilPage;
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };

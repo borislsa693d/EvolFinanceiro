@@ -29,8 +29,18 @@ export default function Login({ onToggle }: LoginProps) {
 
   return (
     <div className="auth-container">
+      <header className="auth-header">
+        <div className="auth-header-brand">
+          Impulso<span className="brand-plus">+</span>
+        </div>
+        <button className="auth-header-link" onClick={onToggle}>
+          Criar conta
+        </button>
+      </header>
       <div className="auth-card">
-        <h1 className="auth-logo">FINANCEFLOW</h1>
+        <h1 className="auth-logo">
+          Impulso<span className="brand-plus">+</span>
+        </h1>
         <p className="auth-subtitle">Entre na sua conta</p>
 
         {error && <div className="error-message">{error}</div>}
@@ -78,6 +88,10 @@ export default function Login({ onToggle }: LoginProps) {
           <button onClick={onToggle}>Criar conta</button>
         </div>
       </div>
+      <footer className="auth-footer">
+        <span>© 2026 Impulso+</span>
+        <span>Controle simples. Decisões inteligentes.</span>
+      </footer>
     </div>
   );
 }
