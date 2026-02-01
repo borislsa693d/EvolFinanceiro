@@ -13,9 +13,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS for local and LAN dev
+# CORS for local, LAN dev, and production
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[
+        "https://impulso.superglok-app.top",
+    ],
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}):(5173|3000)",
     allow_credentials=True,
     allow_methods=["*"],
