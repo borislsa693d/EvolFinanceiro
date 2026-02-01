@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../Modal/Modal';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import { accountsAPI, type Account } from '../../lib/api';
+import { accountsAPI, transactionsAPI, type Account, type Transaction } from '../../lib/api';
 
 const ContasSection: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [contas, setContas] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form state
@@ -21,8 +22,12 @@ const ContasSection: React.FC = () => {
 
   const loadAccounts = async () => {
     try {
-      const data = await accountsAPI.getAll();
-      setContas(data);
+      const [accountsData, transactionsData] = await Promise.all([
+        accountsAPI.getAll(),
+        transactionsAPI.getAll(),
+      ]);
+      setContas(accountsData);
+      setTransactions(transactionsData);
     } catch (error) {
       console.error('Erro ao carregar contas:', error);
       alert('Erro ao carregar contas');
@@ -114,17 +119,33 @@ const ContasSection: React.FC = () => {
 
   const formatCurrencyFromDigitsTable = (digits: string) => {
     const normalized = digits ? digits : '0';
-    const cents = normalized.padStart(2, '0');
-    const intPart = cents.length > 2 ? cents.slice(0, -2) : '0';
-    const fracPart = cents.slice(-2);
-    const intPadded = intPart.padStart(4, '0');
-    const intWithDots = intPadded.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return `R$ ${intWithDots},${fracPart}`;
+    const value = Number(normalized) / 100;
+    const formatted = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+    return `R$ ${formatted}`;
   };
 
   const formatCurrencyFromValue = (value: number) => {
     const cents = Math.round(Number(value || 0) * 100);
     return formatCurrencyFromDigitsTable(cents > 0 ? String(cents) : '0');
+  };
+
+  const getAccountBalance = (accountId: string) => {
+    const account = contas.find((item) => item.id === accountId);
+    const initialBalance = Number(account?.initial_balance || 0);
+    const accountTransactions = transactions.filter((t) => t.account_id === accountId);
+
+    const income = accountTransactions
+      .filter((t) => t.type === 'income')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+    const expenses = accountTransactions
+      .filter((t) => t.type === 'expense' && !t.credit_card_id)
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+    return initialBalance + income - expenses;
   };
 
   const handleInitialBalanceChange = (value: string) => {
@@ -151,6 +172,7 @@ const ContasSection: React.FC = () => {
                 <th>Nome</th>
                 <th>Tipo</th>
                 <th>Saldo Inicial</th>
+                <th>Saldo Atual</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -160,6 +182,7 @@ const ContasSection: React.FC = () => {
                   <td>{conta.name}</td>
                   <td>{conta.type || '-'}</td>
                   <td>{formatCurrencyFromValue(Number(conta.initial_balance))}</td>
+                  <td>{formatCurrencyFromValue(getAccountBalance(conta.id))}</td>
                   <td>
                     <div className="action-buttons">
                       <button

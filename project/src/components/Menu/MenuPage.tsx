@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './MenuPage.css';
-import { FaChartLine, FaUniversity, FaCreditCard, FaTags, FaUser } from 'react-icons/fa';
+import { FaChartLine, FaUniversity, FaCreditCard, FaTags, FaUser, FaCalendarAlt, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 
 const menuItems = [
   { path: '/analises', label: 'Análises', icon: <FaChartLine /> },
+  { path: '/previsao', label: 'Projeção Mensal', icon: <FaCalendarAlt /> },
+  { path: '/previsao/receitas-fixas', label: 'Receitas Fixas', icon: <FaArrowUp /> },
+  { path: '/previsao/despesas-fixas', label: 'Despesas Fixas', icon: <FaArrowDown /> },
   { path: '/contas', label: 'Contas Bancárias', icon: <FaUniversity /> },
   { path: '/cartoes', label: 'Cartões de Crédito', icon: <FaCreditCard /> },
   { path: '/categorias', label: 'Categorias', icon: <FaTags /> },

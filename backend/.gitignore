@@ -9,3 +9,7 @@ ENV/
 
 .env
 .venv
+*.db
+*.db-wal
+*.db-shm
+*.db-journal

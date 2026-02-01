@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../lib/api';
 import Modal from '../Modal/Modal';
@@ -7,7 +6,6 @@ import './Perfil.css';
 
 const PerfilPage: React.FC = () => {
   const { user, updateUser, signOut } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -77,6 +75,9 @@ const PerfilPage: React.FC = () => {
 
   const handleResetPassword = () => {
     setIsPasswordModalOpen(true);
+  };
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const closePasswordModal = () => {
@@ -318,7 +319,3 @@ const PerfilPage: React.FC = () => {
 };
 
 export default PerfilPage;
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/');
-  };

@@ -6,11 +6,11 @@ import type { Transaction, Category, CreditCard, Account, FixedTransaction } fro
 import StatsCards from './StatsCards';
 import ExpensesByCategory from './ExpensesByCategory';
 import WealthEvolution from './WealthEvolution';
-import { LogOut, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import '../../styles/dashboard.css';
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -84,11 +84,6 @@ export default function Dashboard() {
         </div>
         <div className="dashboard-user">
           <span className="user-email">{user?.email || 'Modo Bypass'}</span>
-          {user && (
-            <button onClick={signOut} className="logout-button">
-              <LogOut size={16} />
-            </button>
-          )}
         </div>
       </div>
 
@@ -108,7 +103,7 @@ export default function Dashboard() {
               transactions={monthTransactions}
               categories={categories}
             />
-            <WealthEvolution transactions={monthTransactions} />
+            <WealthEvolution transactions={transactions} accounts={accounts} />
           </div>
         </div>
       </div>

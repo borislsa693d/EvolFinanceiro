@@ -90,3 +90,4 @@ Deveria retornar: `{"status": "ok", "database": "SQLite with WAL"}`
 
 
 
+

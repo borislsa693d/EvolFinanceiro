@@ -26,19 +26,27 @@ const useIsMobile = (breakpoint = 1024) => {
 };
 
 const Layout = ({ children }: LayoutProps) => {
-  const [isNavExpanded, setIsNavExpanded] = useState(true);
+  const [isNavPinned, setIsNavPinned] = useState(true);
+  const [isNavHovered, setIsNavHovered] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
 
   const toggleNav = () => {
     if (!isMobile) {
-      setIsNavExpanded(!isNavExpanded);
+      setIsNavPinned((prev) => !prev);
     }
   };
+  const isNavExpanded = isNavPinned || isNavHovered;
 
   return (
     <div className="layout">
-      {!isMobile && <NavBoard isExpanded={isNavExpanded} onToggle={toggleNav} />}
+      {!isMobile && (
+        <NavBoard
+          isExpanded={isNavExpanded}
+          onToggle={toggleNav}
+          onHoverChange={setIsNavHovered}
+        />
+      )}
       
       <main className="main-content" style={{ paddingBottom: isMobile ? '80px' : '0' }}>
         {!isMobile && (

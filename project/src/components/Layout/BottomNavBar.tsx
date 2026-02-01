@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, BarChart2, FileText, Calendar, Menu, Plus } from 'lucide-react';
+import { Home, BarChart2, FileText, Menu, Plus } from 'lucide-react';
 import './BottomNavBar.css';
 
 const navItems = [
@@ -8,7 +8,6 @@ const navItems = [
   { path: '/extrato', label: 'Extrato', icon: <FileText size={24} /> },
   { path: '/new-transaction', label: 'Adicionar', icon: <Plus size={32} /> },
   { path: '/analises', label: 'Análises', icon: <BarChart2 size={24} /> },
-  { path: '/previsao', label: 'Previsão', icon: <Calendar size={24} /> },
   { path: '/menu', label: 'Menu', icon: <Menu size={24} /> },
 ];
 

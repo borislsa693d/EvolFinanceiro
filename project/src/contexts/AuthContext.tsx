@@ -76,6 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     authAPI.logout();
     setUser(null);
+    try {
+      if (window.location.pathname !== '/') {
+        window.location.replace('/');
+      } else {
+        window.location.reload();
+      }
+    } catch {
+      // no-op
+    }
   };
 
   const updateUser = async () => {

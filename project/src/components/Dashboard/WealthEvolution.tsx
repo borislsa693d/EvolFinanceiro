@@ -1,41 +1,77 @@
-import { Transaction } from '../../lib/api';
+import type { Account, Transaction } from '../../lib/api';
 
 interface WealthEvolutionProps {
   transactions: Transaction[];
+  accounts: Account[];
 }
 
-export default function WealthEvolution({ transactions }: WealthEvolutionProps) {
-  const monthNames = ['Jan', 'Fev', 'Mar'];
-  const year = 2026; // Ano atual para consistência
+export default function WealthEvolution({ transactions, accounts }: WealthEvolutionProps) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonthIndex = now.getMonth();
 
-  const getMonthData = (month: number) => {
+  const months: { year: number; monthIndex: number; label: string }[] = [];
+  // Add current and previous months (within the same year)
+  for (let i = 0; i <= 2; i += 1) {
+    const monthIndex = currentMonthIndex - i;
+    if (monthIndex >= 0) {
+      const date = new Date(currentYear, monthIndex, 1);
+      months.unshift({
+        year: currentYear,
+        monthIndex,
+        label: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+      });
+    }
+  }
+  // If we don't have 3 months yet (Jan/Feb), fill with next months
+  let nextOffset = 1;
+  while (months.length < 3) {
+    const monthIndex = currentMonthIndex + nextOffset;
+    const date = new Date(currentYear, monthIndex, 1);
+    months.push({
+      year: date.getFullYear(),
+      monthIndex: date.getMonth(),
+      label: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+    });
+    nextOffset += 1;
+  }
+
+  const getInitialBalanceForMonth = (year: number, monthIndex: number) => {
+    return accounts
+      .filter((account) => {
+        if (!account.initial_balance) return false;
+        const createdAt = new Date(account.created_at);
+        return createdAt.getFullYear() === year && createdAt.getMonth() === monthIndex;
+      })
+      .reduce((sum, account) => sum + Number(account.initial_balance || 0), 0);
+  };
+
+  const getMonthData = (year: number, monthIndex: number) => {
     const monthTransactions = transactions.filter((t) => {
       const tDate = new Date(t.date + 'T00:00:00');
-      return tDate.getMonth() + 1 === month && tDate.getFullYear() === year;
+      return tDate.getMonth() === monthIndex && tDate.getFullYear() === year;
     });
 
     const income = monthTransactions
       .filter((t) => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
-    // Despesas apenas de conta bancária (excluir cartão)
+    // Despesas apenas de conta bancaria (excluir cartao)
     const expenses = monthTransactions
       .filter((t) => t.type === 'expense' && t.account_id && !t.credit_card_id)
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
+    const initialBalance = getInitialBalanceForMonth(year, monthIndex);
+
     return {
       income,
       expenses,
-      balance: income - expenses,
+      balance: income - expenses + initialBalance,
     };
   };
 
-  // Mostrar 3 meses: Janeiro, Fevereiro, Março
-  const data = [
-    getMonthData(1),  // Janeiro
-    getMonthData(2),  // Fevereiro
-    getMonthData(3),  // Março
-  ];
+  // 3 meses no ano corrente, sempre incluindo o mes atual
+  const data = months.map((month) => getMonthData(month.year, month.monthIndex));
 
   const maxValue = Math.max(
     ...data.map((d) => Math.max(d.income, d.expenses, Math.abs(d.balance)))
@@ -90,7 +126,7 @@ export default function WealthEvolution({ transactions }: WealthEvolutionProps) 
                     <div className="zero-value">R$ 0,00</div>
                   </div>
                 )}
-                <div className="column-label">{monthNames[index]}</div>
+                <div className="column-label">{months[index].label}</div>
               </div>
             );
           })}

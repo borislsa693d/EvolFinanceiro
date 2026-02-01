@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { FaTachometerAlt, FaChartPie, FaList, FaCalendarAlt, FaCog, FaUser, FaAngleLeft, FaAngleRight, FaAngleDown, FaUniversity, FaCreditCard, FaTags, FaTable, FaArrowUp, FaArrowDown, FaSignOutAlt } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import './NavBoard.css';
@@ -7,11 +7,11 @@ import './NavBoard.css';
 interface NavBoardProps {
   isExpanded: boolean;
   onToggle: () => void;
+  onHoverChange?: (isHovering: boolean) => void;
 }
 
-const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle }) => {
+const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle, onHoverChange }) => {
   const { signOut } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isForecastOpen, setIsForecastOpen] = useState(false);
@@ -21,11 +21,13 @@ const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle }) => {
     location.pathname === '/contas' ||
     location.pathname === '/cartoes' ||
     location.pathname === '/categorias';
+  const isSettingsMainRoute = location.pathname === '/configuracoes';
 
   const isForecastRoute =
     location.pathname === '/previsao' ||
     location.pathname === '/previsao/receitas-fixas' ||
     location.pathname === '/previsao/despesas-fixas';
+  const isForecastMainRoute = location.pathname === '/previsao';
 
   useEffect(() => {
     setIsSettingsOpen(isSettingsRoute);
@@ -41,9 +43,16 @@ const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle }) => {
       onToggle();
     }
   };
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   return (
-    <div className={`nav-board ${isExpanded ? 'is-expanded' : 'is-collapsed'}`}>
+    <div
+      className={`nav-board ${isExpanded ? 'is-expanded' : 'is-collapsed'}`}
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
+    >
       <div>
         <div className="nav-board-header">
           <div className="nav-title">
@@ -51,7 +60,7 @@ const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle }) => {
               Impulso<span className="brand-plus">+</span>
             </span>
             <span className="nav-title-short">
-              I<span className="brand-plus">+</span>
+              <span className="brand-plus">+</span>
             </span>
           </div>
           <button className="nav-toggle" onClick={onToggle} aria-label="Alternar menu">
@@ -67,7 +76,7 @@ const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle }) => {
               <button
                 type="button"
                 onClick={() => setIsForecastOpen((prev) => !prev)}
-                className={`nav-link-with-caret${isForecastOpen ? ' active' : ''}`}
+                className={`nav-link-with-caret${isForecastMainRoute ? ' active' : ''}`}
               >
                 <span className="nav-link-main">
                   <FaCalendarAlt />
@@ -77,7 +86,7 @@ const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle }) => {
               </button>
               <ul className="nav-submenu">
                 <li onClick={handleLinkClick}>
-                  <NavLink to="/previsao">
+                  <NavLink to="/previsao" end>
                     <FaCalendarAlt />
                     <span className="nav-label">Projeção Mensal</span>
                   </NavLink>
@@ -100,7 +109,7 @@ const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle }) => {
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen((prev) => !prev)}
-                className={`nav-link-with-caret${isSettingsOpen ? ' active' : ''}`}
+                className={`nav-link-with-caret${isSettingsMainRoute ? ' active' : ''}`}
               >
                 <span className="nav-link-main">
                   <FaCog />
@@ -154,7 +163,3 @@ const NavBoard: React.FC<NavBoardProps> = ({ isExpanded, onToggle }) => {
 };
 
 export default NavBoard;
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/');
-  };

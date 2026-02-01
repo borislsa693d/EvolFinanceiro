@@ -2,7 +2,7 @@
 Rotas de autenticação
 """
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from database import get_db
 import models
@@ -10,6 +10,19 @@ import schemas
 from auth import get_password_hash, authenticate_user, create_access_token, get_current_user, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+# Rate limit simples em memória (por IP+email) para reduzir força bruta
+RATE_LIMIT_WINDOW = 10 * 60  # 10 minutos
+MAX_LOGIN_ATTEMPTS = 5
+_login_attempts = {}
+
+def _get_rate_key(request: Request, email: str) -> str:
+    client_ip = request.client.host if request.client else "unknown"
+    return f"{client_ip}:{email.lower().strip()}"
+
+def _prune_attempts(attempts: list, now_ts: float) -> list:
+    cutoff = now_ts - RATE_LIMIT_WINDOW
+    return [ts for ts in attempts if ts >= cutoff]
 
 def create_default_categories(user_id: str, db: Session):
     """Criar categorias padrão para um novo usuário"""
@@ -78,16 +91,32 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
     return new_user
 
 @router.post("/login", response_model=schemas.Token)
-async def login(login_data: schemas.LoginRequest, db: Session = Depends(get_db)):
+async def login(login_data: schemas.LoginRequest, request: Request, db: Session = Depends(get_db)):
     """Login e obtenção de token JWT"""
+    now_ts = datetime.utcnow().timestamp()
+    rate_key = _get_rate_key(request, login_data.email)
+    attempts = _prune_attempts(_login_attempts.get(rate_key, []), now_ts)
+
+    if len(attempts) >= MAX_LOGIN_ATTEMPTS:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas de login. Tente novamente mais tarde."
+        )
+
     user = authenticate_user(db, login_data.email, login_data.password)
     
     if not user:
+        attempts.append(now_ts)
+        _login_attempts[rate_key] = attempts
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Sucesso: limpar tentativas
+    if rate_key in _login_attempts:
+        _login_attempts.pop(rate_key, None)
     
     # Criar token
     access_token = create_access_token(data={"sub": user.id})

@@ -7,12 +7,14 @@
 .main-content {
     flex-grow: 1;
     padding: 2rem;
-    overflow-y: auto; /* Rolagem vertical apenas no conteúdo */
+    overflow-y: auto; /* Rolagem vertical apenas no conteudo */
+    background: #000000;
 }
 
-/* Botão de Menu Mobile (Hamburger) */
+
+/* Botao de Menu Mobile (Hamburger) */
 .mobile-nav-toggle {
-    display: none; /* Oculto por padrão em telas grandes */
+    display: none; /* Oculto por padrao em telas grandes */
     position: fixed;
     top: 1rem;
     left: 1rem;
@@ -37,12 +39,10 @@
   z-index: 40;
 }
 
-
-
 /* Media Query para telas de tablet e celular */
 @media (max-width: 768px) {
     .mobile-nav-toggle {
-        display: block; /* Mostra o botão hamburger */
+        display: block; /* Mostra o botao hamburger */
     }
 
     .overlay {
@@ -51,6 +51,6 @@
 
     .main-content {
         padding: 1rem;
-        padding-top: 5rem; /* Espaço para o botão hamburger não sobrepor o título */
+        padding-top: 1rem;
     }
 }

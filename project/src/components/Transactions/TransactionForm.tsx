@@ -26,7 +26,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ editTransaction, onCa
   const [categoryId, setCategoryId] = useState('');
   const [accountId, setAccountId] = useState('');
   const [dateType, setDateType] = useState<'Hoje' | 'Ontem' | 'Outra'>('Hoje');
-  const [customDate, setCustomDate] = useState(new Date());
+  const [customDate, setCustomDate] = useState('');
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -65,7 +65,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ editTransaction, onCa
         setDateType('Ontem');
       } else {
         setDateType('Outra');
-        setCustomDate(transDate);
+        setCustomDate(editTransaction.date);
       }
     }
   }, [isEditing, editTransaction]);
@@ -115,7 +115,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ editTransaction, onCa
     if (dateType === 'Ontem') {
       transactionDate.setDate(transactionDate.getDate() - 1);
     } else if (dateType === 'Outra') {
-      transactionDate = new Date(customDate);
+      if (!customDate) {
+        alert('Selecione uma data vÃ¡lida.');
+        return;
+      }
+      const parsedDate = new Date(customDate + 'T00:00:00');
+      if (Number.isNaN(parsedDate.getTime())) {
+        alert('Selecione uma data vÃ¡lida.');
+        return;
+      }
+      transactionDate = parsedDate;
     }
 
     const amountValue = amountDigits ? Number(amountDigits) / 100 : 0;
@@ -221,13 +230,25 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ editTransaction, onCa
       <div className="form-field">
         <label>Data</label>
         <div className="date-toggle">
-          <button className={dateType === 'Hoje' ? 'active' : ''} onClick={() => setDateType('Hoje')}>
+          <button
+            type="button"
+            className={dateType === 'Hoje' ? 'active' : ''}
+            onClick={() => setDateType('Hoje')}
+          >
             Hoje
           </button>
-          <button className={dateType === 'Ontem' ? 'active' : ''} onClick={() => setDateType('Ontem')}>
+          <button
+            type="button"
+            className={dateType === 'Ontem' ? 'active' : ''}
+            onClick={() => setDateType('Ontem')}
+          >
             Ontem
           </button>
-          <button className={dateType === 'Outra' ? 'active' : ''} onClick={() => setDateType('Outra')}>
+          <button
+            type="button"
+            className={dateType === 'Outra' ? 'active' : ''}
+            onClick={() => setDateType('Outra')}
+          >
             Outra
           </button>
         </div>
@@ -235,8 +256,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ editTransaction, onCa
           <div className="custom-date-picker">
             <input
               type="date"
-              value={customDate.toISOString().split('T')[0]}
-              onChange={(e) => setCustomDate(new Date(e.target.value + 'T00:00:00'))}
+              value={customDate}
+              onChange={(e) => setCustomDate(e.target.value)}
             />
           </div>
         )}

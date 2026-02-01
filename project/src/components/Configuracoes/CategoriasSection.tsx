@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../Modal/Modal';
 import { FaPlus, FaEdit, FaTrash, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { categoriesAPI, type Category } from '../../lib/api';
+import { getIncomePresetByName, getExpensePresetByName } from '../../lib/categoryPresets';
 
 const CategoriasSection: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,6 +17,12 @@ const CategoriasSection: React.FC = () => {
   const [name, setName] = useState('');
   const [color, setColor] = useState('#000000');
   const [type, setType] = useState<'income' | 'expense'>('expense');
+  const preset = useMemo(() => {
+    if (type === 'income') return getIncomePresetByName(name);
+    if (type === 'expense') return getExpensePresetByName(name);
+    return null;
+  }, [type, name]);
+  const isPreset = Boolean(preset);
 
   useEffect(() => {
     loadCategories();
@@ -38,7 +45,11 @@ const CategoriasSection: React.FC = () => {
       setIsEditing(true);
       setEditingId(category.id);
       setName(category.name);
-      setColor(category.color || '#000000');
+      const resolvedPreset =
+        category.type === 'income'
+          ? getIncomePresetByName(category.name)
+          : getExpensePresetByName(category.name);
+      setColor(resolvedPreset?.color || category.color || '#000000');
       setType(category.type);
     } else {
       setIsEditing(false);
@@ -59,6 +70,12 @@ const CategoriasSection: React.FC = () => {
     setType('expense');
   };
 
+  useEffect(() => {
+    if (preset && color.toLowerCase() !== preset.color.toLowerCase()) {
+      setColor(preset.color);
+    }
+  }, [preset, color]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -71,13 +88,13 @@ const CategoriasSection: React.FC = () => {
       if (isEditing && editingId) {
         await categoriesAPI.update(editingId, {
           name,
-          color,
+          color: preset?.color || color,
           type,
         });
       } else {
         await categoriesAPI.create({
           name,
-          color,
+          color: preset?.color || color,
           type,
         });
       }
@@ -189,11 +206,13 @@ const CategoriasSection: React.FC = () => {
             <div className="empty-state-small">Nenhuma categoria de entrada</div>
           ) : (
             <div className="categorias-list">
-              {filteredIncome.map(categoria => (
+              {filteredIncome.map(categoria => {
+                const itemPreset = getIncomePresetByName(categoria.name);
+                return (
                 <div
                   key={categoria.id}
                   className="categoria-item"
-                  style={{ borderLeftColor: categoria.color }}
+                  style={{ borderLeftColor: itemPreset ? 'transparent' : categoria.color }}
                   onClick={() => handleOpenModal(categoria)}
                   role="button"
                   tabIndex={0}
@@ -205,10 +224,13 @@ const CategoriasSection: React.FC = () => {
                   }}
                 >
                   <div className="categoria-item-content">
-                    <span 
-                      className="categoria-color-indicator"
-                      style={{ backgroundColor: categoria.color }}
-                    />
+                    {!itemPreset && (
+                      <span
+                        className="categoria-color-indicator"
+                        style={{ backgroundColor: categoria.color }}
+                      />
+                    )}
+                    {itemPreset && <span className="categoria-icon">{itemPreset.icon}</span>}
                     <span>{categoria.name}</span>
                   </div>
                   <div className="action-buttons">
@@ -234,7 +256,8 @@ const CategoriasSection: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -251,11 +274,13 @@ const CategoriasSection: React.FC = () => {
             <div className="empty-state-small">Nenhuma categoria de saída</div>
           ) : (
             <div className="categorias-list">
-              {filteredExpense.map(categoria => (
+              {filteredExpense.map(categoria => {
+                const itemPreset = getExpensePresetByName(categoria.name);
+                return (
                 <div
                   key={categoria.id}
                   className="categoria-item"
-                  style={{ borderLeftColor: categoria.color }}
+                  style={{ borderLeftColor: itemPreset ? 'transparent' : categoria.color }}
                   onClick={() => handleOpenModal(categoria)}
                   role="button"
                   tabIndex={0}
@@ -267,10 +292,13 @@ const CategoriasSection: React.FC = () => {
                   }}
                 >
                   <div className="categoria-item-content">
-                    <span 
-                      className="categoria-color-indicator"
-                      style={{ backgroundColor: categoria.color }}
-                    />
+                    {!itemPreset && (
+                      <span
+                        className="categoria-color-indicator"
+                        style={{ backgroundColor: categoria.color }}
+                      />
+                    )}
+                    {itemPreset && <span className="categoria-icon">{itemPreset.icon}</span>}
                     <span>{categoria.name}</span>
                   </div>
                   <div className="action-buttons">
@@ -296,7 +324,8 @@ const CategoriasSection: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -343,6 +372,7 @@ const CategoriasSection: React.FC = () => {
                 type="color" 
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
+                disabled={isPreset}
                 style={{ width: '60px', height: '40px', cursor: 'pointer' }}
               />
               <input 
@@ -350,9 +380,15 @@ const CategoriasSection: React.FC = () => {
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 placeholder="#000000"
+                disabled={isPreset}
                 style={{ flex: 1 }}
               />
             </div>
+            {isPreset && (
+              <small style={{ color: '#888', marginTop: '0.25rem', display: 'block' }}>
+                Cor definida automaticamente para categoria padrão.
+              </small>
+            )}
           </div>
           <div className="modal-actions">
             <button type="button" className="button-secondary" onClick={handleCloseModal}>
