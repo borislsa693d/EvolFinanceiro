@@ -8,14 +8,13 @@ const getAPIUrl = () => {
   
   // Detectar se está acessando pela rede local ou localhost
   const hostname = window.location.hostname;
-  
-  // Se estiver acessando pelo IP da rede local, usar o mesmo IP para a API
-  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    return `http://${hostname}:8000`;
-  }
-  
   // Caso contrário, usar localhost (desenvolvimento local)
-  return 'http://localhost:8000';
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8000';
+  }
+
+  // Produção
+  return 'https://apihostimpulso.superglok-app.top';
 };
 
 const API_URL = getAPIUrl();
@@ -395,3 +394,4 @@ export type FixedTransaction = {
   credit_card_id?: string | null;
   created_at: string;
 };
+
