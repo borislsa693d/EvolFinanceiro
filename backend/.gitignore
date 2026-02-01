@@ -8,8 +8,8 @@ env/
 ENV/
 
 .env
-.venv
-*.db
-*.db-wal
-*.db-shm
+# .venv - removido para permitir commit
+# *.db - removido para permitir commit
+# *.db-wal - removido para permitir commit
+# *.db-shm - removido para permitir commit
 *.db-journal
