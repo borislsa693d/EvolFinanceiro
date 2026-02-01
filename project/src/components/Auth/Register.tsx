@@ -7,6 +7,7 @@ interface RegisterProps {
 }
 
 export default function Register({ onToggle }: RegisterProps) {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,8 +41,9 @@ export default function Register({ onToggle }: RegisterProps) {
     setLoading(true);
 
     try {
-      await signUp(email, password);
+      await signUp(email, password, fullName.trim() || undefined);
       setSuccess(true);
+      setFullName('');
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -53,20 +55,45 @@ export default function Register({ onToggle }: RegisterProps) {
   };
 
   return (
-    <div className="auth-container">
-      <header className="auth-header">
-        <div className="auth-header-brand">
+    <div className="auth-page">
+      <section className="auth-left">
+        <a className="auth-brand" href="/">
           Impulso<span className="brand-plus">+</span>
+        </a>
+        <h1>Seu dinheiro, organizado em minutos.</h1>
+        <p className="auth-subcopy">
+          Crie sua conta e comece a acompanhar saldo, receitas e despesas com clareza diária.
+        </p>
+
+        <div className="auth-badges">
+          <span>Sem planilhas</span>
+          <span>Insights visuais</span>
+          <span>Metas inteligentes</span>
         </div>
-        <button className="auth-header-link" onClick={onToggle}>
-          Fazer login
-        </button>
-      </header>
-      <div className="auth-card">
-        <h1 className="auth-logo">
-          Impulso<span className="brand-plus">+</span>
-        </h1>
-        <p className="auth-subtitle">Crie sua conta</p>
+
+        <div className="auth-quote">
+          <p>
+            “A configuração foi rápida e já no primeiro dia eu entendi onde cortar gastos.”
+          </p>
+          <div className="auth-quote-author">
+            <div className="avatar">RP</div>
+            <div>
+              <strong>Rafael Pereira</strong>
+              <span>Analista Financeiro</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-orbit" aria-hidden="true">
+          <span className="orbit-dot dot-1" />
+          <span className="orbit-dot dot-2" />
+          <span className="orbit-dot dot-3" />
+        </div>
+      </section>
+
+      <section className="auth-right">
+        <h2>Crie sua conta</h2>
+        <p>Leva menos de um minuto.</p>
 
         {error && <div className="error-message">{error}</div>}
         {success && (
@@ -76,12 +103,21 @@ export default function Register({ onToggle }: RegisterProps) {
         )}
 
         <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">
-              Email
-            </label>
+          <label className="form-label">
+            Nome completo
             <input
-              id="email"
+              type="text"
+              className="form-input"
+              placeholder="Seu nome"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+            />
+          </label>
+
+          <label className="form-label">
+            Email
+            <input
               type="email"
               className="form-input"
               placeholder="seu@email.com"
@@ -89,14 +125,11 @@ export default function Register({ onToggle }: RegisterProps) {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-          </div>
+          </label>
 
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">
-              Senha
-            </label>
+          <label className="form-label">
+            Senha
             <input
-              id="password"
               type="password"
               className="form-input"
               placeholder="••••••••"
@@ -104,25 +137,11 @@ export default function Register({ onToggle }: RegisterProps) {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <div className="password-rules">
-              <span className={`password-rule ${passwordChecks.hasUpper ? 'ok' : ''}`}>
-                • 1 letra maiúscula
-              </span>
-              <span className={`password-rule ${passwordChecks.hasNumber ? 'ok' : ''}`}>
-                • 1 número
-              </span>
-              <span className={`password-rule ${passwordChecks.hasSpecial ? 'ok' : ''}`}>
-                • 1 caractere especial
-              </span>
-            </div>
-          </div>
+          </label>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">
-              Confirmar Senha
-            </label>
+          <label className="form-label">
+            Confirmar senha
             <input
-              id="confirmPassword"
               type="password"
               className="form-input"
               placeholder="••••••••"
@@ -130,29 +149,32 @@ export default function Register({ onToggle }: RegisterProps) {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
-            <div className="password-rules">
-              <span className={`password-rule ${passwordChecks.matches ? 'ok' : ''}`}>
-                • Senhas iguais
-              </span>
-            </div>
+          </label>
+
+          <div className="password-rules">
+            <span className={`password-rule ${passwordChecks.hasUpper ? 'ok' : ''}`}>
+              • 1 letra maiúscula
+            </span>
+            <span className={`password-rule ${passwordChecks.hasNumber ? 'ok' : ''}`}>
+              • 1 número
+            </span>
+            <span className={`password-rule ${passwordChecks.hasSpecial ? 'ok' : ''}`}>
+              • 1 caractere especial
+            </span>
+            <span className={`password-rule ${passwordChecks.matches ? 'ok' : ''}`}>
+              • Senhas iguais
+            </span>
           </div>
 
           <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? 'Criando...' : 'Criar Conta'}
+            {loading ? 'Criando...' : 'Criar conta'}
           </button>
         </form>
 
-        <div className="auth-divider">ou</div>
-
-        <div className="auth-link">
-          Já tem uma conta?
-          <button onClick={onToggle}>Fazer login</button>
+        <div className="auth-footer-note">
+          Já tem uma conta? <button onClick={onToggle}>Fazer login</button>
         </div>
-      </div>
-      <footer className="auth-footer">
-        <span>© 2026 Impulso+</span>
-        <span>Controle simples. Decisões inteligentes.</span>
-      </footer>
+      </section>
     </div>
   );
 }
